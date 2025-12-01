@@ -6,6 +6,9 @@
 #include <sys/types.h>
 
 
+#define TIME_BUFFER_MAX 25
+
+
 // ADT of historic list item
 typedef struct {
     char cmd[MAX_INPUT/2];
@@ -27,6 +30,7 @@ typedef enum { MEM_MALLOC, MEM_MMAP, MEM_SHARED } tMemType;
 typedef struct {
     void *addr;
     size_t size;
+	char time[TIME_BUFFER_MAX];
     tMemType alloc_mode;
     char file[PATH_MAX];
     int fd;
@@ -36,6 +40,7 @@ typedef struct {
 #define DEFAULT_ITEM_M (tItemM){ \
     .addr = NULL, \
     .size = 0, \
+    .time = "", \
     .alloc_mode = -1, \
     .file = "", \
     .fd = -1, \
