@@ -671,7 +671,11 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
 
 
 
+
+
 /* P2 FUNCTIONS (NON-HELP FUNCTIONS) */
+
+
 
 
 
@@ -679,6 +683,7 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
 
 	// Case no args passed -> Print list of allocated blocks
     if (args[1] == NULL) {
+    	printf("****** List of malloc blocks assigned to process %d:\n", getpid());
         printListMallocM(ShellState->MemList);
         return;
     }
@@ -697,12 +702,17 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
             printf("Malloc failed\n");
             return;
         }
-
+		time_t raw_time = time(NULL);
+    	struct tm *tm_info;
+		char time_buffer[TIME_BUFFER_MAX];
+		tm_info = localtime(&raw_time); 
+		strftime(time_buffer, sizeof(time_buffer), "%a %b %d %H:%M:%S %Y", tm_info);
+    	
         tItemM item = DEFAULT_ITEM_M;
         item.addr = ptr;
         item.size = n;
         item.alloc_mode = MEM_MALLOC;
-
+    	strcpy(item.time, time_buffer);
         insertItemM(&ShellState->MemList, item);
 
         printf("Allocated %ld bytes at %p\n", n, ptr);
@@ -731,7 +741,11 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
 
 void cmd_mmap(char *args[], tShellState *ShellState) {
 	
-    if (args[1] == NULL) { printListMMapM(ShellState->MemList); return; }
+    if (args[1] == NULL) {
+		printf("****** List of malloc blocks assigned to process %d:\n", getpid());
+    	printListMMapM(ShellState->MemList); 
+    	return;
+    }
         	
     if (strcmp(args[1], "--help") == 0) { help_mmap(); return; }
     
@@ -764,61 +778,46 @@ void cmd_mem(char *args[], tShellState *ShellState) {
     
     static int si1 = 11, si2 = 22, si3 = 33;
     static int sni1, sni2, sni3;
+    
+    bool vars = false, blocks = false, funcs = false;
 
     if (args[1] == NULL) { print_invalid_usage(); return; }
     
     if (strcmp(args[1], "--help") == 0) { help_mem(); return; }
     
-    if (args[1] && strcmp(args[1], "-funcs") == 0) {
-        printf("Program functions   %p    %p    %p\n", cmd_malloc, cmd_read, cmd_write);
-        printf("Library functions   %p    %p    %p\n", printf, malloc, strcpy);
-        return;
-    }
-    
-    else if (args[1] && strcmp(args[1], "-vars") == 0) {
-        printf("Local variables    %p   %p    %p\n", &l1, &l2, &l3);
-        printf("Global variables    %p    %p    %p\n", &g1, &g2, &g3);
-        printf("Var (N.I.) global   %p    %p    %p\n", &ng1, &ng2, &ng3);
-        printf("Static variables    %p    %p    %p\n", &si1, &si2, &si3);
-        printf("Var (N.I.) static   %p    %p    %p\n", &sni1, &sni2, &sni3);
-        return;
-    }
-    
-    else if (args[1] && strcmp(args[1], "-blocks") == 0) {
-        printf("******List of blocks assign to the process %d\n", getpid());
-        printListMallocM(ShellState->MemList);
-        printListMMapM(ShellState->MemList);
-        printListSharedM(ShellState->MemList);
-    }
-    
-    else if (args[1] && strcmp(args[1], "-all") == 0) {
-    
-        // -vars
-        printf("Local variables    %p   %p    %p\n", &l1, &l2, &l3);
-        printf("Global variables    %p    %p    %p\n", &g1, &g2, &g3);
-        printf("Var (N.I.) global   %p    %p    %p\n", &ng1, &ng2, &ng3);
-        printf("Static variables    %p    %p    %p\n", &si1, &si2, &si3);
-        printf("Var (N.I.) static   %p    %p    %p\n", &sni1, &sni2, &sni3);
-        
-        // -funcs
-        printf("Program functions   %p    %p    %p\n", cmd_malloc, cmd_read, cmd_write);
-        printf("Library functions   %p    %p    %p\n", printf, malloc, strcpy);
-        
-        // -blocks
-        printf("******List of blocks assign to the process %d\n", getpid());
-        printListMallocM(ShellState->MemList);
-        printListMMapM(ShellState->MemList);
-        printListSharedM(ShellState->MemList);
-        
-        return;
-    }
-    
+    if (strcmp(args[1], "-funcs") == 0)
+    	funcs = true;
+    else if (strcmp(args[1], "-vars") == 0)
+    	vars = true;
+    else if (strcmp(args[1], "-blocks") == 0)
+    	blocks = true;
+    else if (strcmp(args[1], "-all") == 0)
+    	funcs = vars = blocks = true;
     else if (args[1] && strcmp(args[1], "-pmap") == 0) {
         do_pmap();
         return;
+    } else {
+    	print_invalid_usage();
+    	return;
     }
     
-    else print_invalid_usage();
+    if (funcs) {
+    	printf("Program functions   %p    %p    %p\n", cmd_malloc, cmd_read, cmd_write);
+		printf("Library functions   %p    %p    %p\n", printf, malloc, strcpy);
+	}
+    if (vars) {
+     	printf("Local variables    %p   %p    %p\n", &l1, &l2, &l3);
+        printf("Global variables    %p    %p    %p\n", &g1, &g2, &g3);
+        printf("Var (N.I.) global   %p    %p    %p\n", &ng1, &ng2, &ng3);
+        printf("Static variables    %p    %p    %p\n", &si1, &si2, &si3);
+        printf("Var (N.I.) static   %p    %p    %p\n", &sni1, &sni2, &sni3);
+    }  
+	if (blocks) {
+		printf("****** List of blocks assign to the process %d\n", getpid());
+		printListMallocM(ShellState->MemList);
+		printListMMapM(ShellState->MemList);
+		printListSharedM(ShellState->MemList);
+	}
 }
 
 void cmd_free(char *args[], tShellState *ShellState) {
@@ -852,10 +851,6 @@ void cmd_memfill(char *args[], tShellState *ShellState) {
     void *addr = stringToPointer(args[1]);
     if (!addr) { perror("Invalid pointer"); return; }
     
-    if (!findItemM(ShellState->MemList, addr)) { 
-    	printf("Invalid address\n"); 
-    	return; }
-    
     size_t cont = (size_t)atoll(args[2]);
     if (cont == 0) { print_invalid_usage(); return; }
     
@@ -875,7 +870,6 @@ void cmd_memdump(char *args[], tShellState *ShellState) {
     void *addr = stringToPointer(args[1]);
     if (!addr) { perror("Invalid pointer"); return; }
     
-    if (!findItemM(ShellState->MemList, addr)) { printf("Invalid address\n"); return; }
     
     size_t cont = (size_t) strtoul(args[2], NULL, 10);
     if (cont == 0) {
