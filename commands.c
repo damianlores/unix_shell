@@ -1,0 +1,1441 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+#include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <sys/utsname.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
+#include <dirent.h>
+#include <sys/mman.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <errno.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+#include "commands.h"
+#include "types.h"
+#include "dynamic_list.h"
+#include "shell.h"
+#include "file_system.h"
+#include "mem_management.h"
+
+
+#define DEFAULT_DUMP_SIZE 25
+
+
+//Glogal variables (for mem)
+int g1 = 111;
+int g2 = 222;
+int g3 = 333;
+
+//Global variables not initizlized
+int ng1;
+int ng2;
+int ng3;
+
+
+
+tCommand commands[] = {
+    {"authors", cmd_authors},
+    {"getpid", cmd_getpid},
+    {"chdir", cmd_chdir},
+    {"getcwd", cmd_getcwd},
+    {"date", cmd_date},
+    {"hour", cmd_hour},
+    {"historic", cmd_historic},
+    {"open", cmd_open},
+    {"close", cmd_close},
+    {"dup", cmd_dup},
+    {"listopen", cmd_listopen},
+    {"infosys", cmd_infosys},
+    {"help", cmd_help},
+    {"exit", cmd_exit},
+    {"quit", cmd_exit},
+    {"bye", cmd_exit},
+    // P1
+    {"create", cmd_create},
+    {"setdirparams", cmd_setdirparams},
+    {"getdirparams", cmd_getdirparams},
+    {"dir", cmd_dir},
+    {"erase", cmd_erase},
+    {"delrec", cmd_delrec},
+    {"lseek", cmd_lseek},
+    {"writestr", cmd_writestr},
+    // P2
+    {"malloc", cmd_malloc},
+    {"mmap", cmd_mmap},
+    {"shared", cmd_shared},
+    {"free", cmd_free},
+    {"mem", cmd_mem},
+    {"memfill", cmd_memfill},
+    {"memdump", cmd_memdump},
+    {"readfile", cmd_readfile},
+    {"writefile", cmd_writefile},
+    {"read", cmd_read},
+    {"write", cmd_write},
+    {"recurse", cmd_recurse},
+    {NULL, NULL}
+};
+
+    	
+void print_invalid_usage() { 
+	printf("Wrong usage. Run with '--help' to show help.\n");
+}
+
+bool cmd_dispatcher(char *args[], tShellState* ShellState) {
+    for (size_t i = 0; commands[i].name != NULL; i++) {
+        if (strcmp(args[0], commands[i].name) == 0) {
+            commands[i].func(args, ShellState);
+            return true;
+        }
+    }
+    return false;
+}
+
+void cmd_authors(char *args[], tShellState *ShellState) {
+
+    bool show_names = false, show_logins = false;
+
+    for (int i = 1; args[i]; i++) {
+        if (strcmp(args[i], "-l") == 0) show_logins = true;
+    	else if (strcmp(args[i], "-n") == 0) show_names = true;
+    	else if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_authors(); return; } 
+    	else { print_invalid_usage(); return; }
+    } 
+
+    if (!show_names && !show_logins)
+        show_names = show_logins = true;
+
+    if (show_logins) {
+    	const char* logins[] = {"d.lores@udc.es", "m.pazos2@udc.es"};
+        for (int i = 0; i < 2; i++)
+            puts(logins[i]);
+    }
+    if (show_names) {
+        const char *names[] = {"Damián", "Marcos"};
+        for (int i = 0; i < 2; i++)
+            puts(names[i]);
+    }
+}
+
+void cmd_getpid(char *args[], tShellState *ShellState) {
+    if (args[1]==NULL) {
+        printf("Shell's pid %d\n", getpid());
+    } else if (strcmp(args[1],"-p")==0) {
+        printf("Shell's father pid: %d\n", getppid());
+    } else if (strcmp(args[1], "--help") == 0) { help_getpid(); return; } 
+    else print_invalid_usage();
+}
+
+void cmd_chdir(char *args[], tShellState *ShellState) {
+
+    char cwd[PATH_MAX];
+
+    if ((args[1] != NULL) && (strcmp(args[1], "--help") == 0)) { help_chdir(); return; }
+    
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+        printf("Current directory: %s\n", cwd);
+
+    if (chdir(args[1]) == 0) {
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != NULL)
+            printf("%s\n", cwd);
+    } else perror(args[1]);
+}
+
+void cmd_getcwd(char *args[], tShellState *ShellState) {
+
+	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_getcwd(); return; }
+    char cwd[PATH_MAX];
+
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+        printf("Current directory: %s\n", cwd);
+}
+
+
+void cmd_date(char *args[], tShellState *ShellState) {
+
+    time_t t = time(NULL);
+    struct tm *tm_read = localtime(&t);
+
+    char date[11];
+    strftime(date, sizeof(date), "%d/%m/%Y", tm_read);
+
+    char hour[9];
+    strftime(hour, sizeof(hour), "%H:%M:%S", tm_read);
+
+    bool show_date = false;
+    bool show_time = false;
+
+    for (int i = 1; args[i] != NULL; i++) {
+        if (strcmp(args[i], "-d") == 0) show_date = true;
+        if (strcmp(args[i], "-t") == 0) show_time = true;
+        if (strcmp(args[1], "--help") == 0) { help_date(); return; }
+    }
+
+    if (!show_date && !show_time) {
+        show_date = show_time = true;
+    }
+
+    if (show_date) printf("%s\n", date);
+    if (show_time) printf("%s\n", hour);
+}
+
+void cmd_hour(char *args[], tShellState *ShellState) {
+
+	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_hour(); return; }
+	
+    time_t t = time(NULL);
+    struct tm *tm_read = localtime(&t);
+    char time[9];
+    strftime(time, sizeof(time), "%H:%M:%S", tm_read);
+
+    printf("%s\n", time);
+
+}
+
+void cmd_historic(char *args[], tShellState *ShellState) {
+    // Given n to the printLastNH function is -1 if no flags are received, as a result
+    // the whole list is printed.
+    if (args[1]==NULL) printLastNH(ShellState->HistoricList, -1);
+    else if (strcmp(args[1], "--help") == 0) { help_historic(); return; }
+    else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %d\n",countH(ShellState->HistoricList));
+    else if (strcmp(args[1],"-clear")==0) clearListH(&ShellState->HistoricList);
+    // If none of the other flags was a match, start parsing by char '-'
+    else if (args[1][0] == '-') {
+        // Format: "-<number>"
+        int n = atoi(args[1] + 1);  // skip '-'
+        if (n <= 0) {
+            printf("Error: number must be greater than 0.\n");
+            return;
+        }
+        printLastNH(ShellState->HistoricList, n);
+    }
+    else {
+        // atoi retrieves 0 if it couldn't make int from char, so we check if input was 0
+        // to avoid problems with invalid inputs.
+        if (strcmp(args[1],"0")==0) {
+            tPosH temp = findItemH(ShellState->HistoricList,0);
+            inputProcess(getItemH(ShellState->HistoricList, temp).cmd, ShellState);
+            // tItemH.cmd is a char array , which is given to input process directly as
+            // there is no need for it to be stored
+        } else {
+			// If next char is not an integer the command is not valid, so id = 0 because of atoi function
+            unsigned int id = atoi(args[1]); 
+            if (id==0) {
+                printf("Invalid command.\n");
+            } else {
+            	// If input number of command to be run exceeds total number 
+            	// of historic commands, there is no command to be run
+                if (countH(ShellState->HistoricList) <= id) {
+                    printf("Error: Index out of bounds.\n");
+                    return;
+                }
+                // If every conditional was unsuccesful we can finally execute the n-th command of historic
+                tPosH temp = findItemH(ShellState->HistoricList,id);
+                inputProcess(getItemH(ShellState->HistoricList,temp).cmd , ShellState);
+            }
+        }
+    }
+}
+
+
+int mode_to_flags(char *args) {
+    if (strcmp(args, "ro") == 0) return O_RDONLY;
+    if (strcmp(args, "rw") == 0) return O_RDWR | O_CREAT;
+    if (strcmp(args, "wo") == 0) return O_WRONLY | O_CREAT;
+    if (strcmp(args, "cr") == 0) return O_RDWR | O_CREAT;
+    if (strcmp(args, "ap") == 0) return O_WRONLY | O_APPEND | O_CREAT;
+    if (strcmp(args, "ex") == 0) return O_WRONLY | O_EXCL | O_CREAT;
+    if (strcmp(args, "tr") == 0) return O_WRONLY | O_TRUNC | O_CREAT;
+    return -1; // invalid mode
+}
+
+void cmd_open(char *args[], tShellState* ShellState) {
+	// no args given -> list of open files
+    if (args[1] == NULL) {
+        cmd_listopen(args, ShellState);
+        return;
+    }
+	// error if no open mode was input
+    if (args[2] == NULL) {
+        printf("Error. Usage: open <file> <mode>\n");
+        return;
+    }
+    short int flags = mode_to_flags(args[2]);
+	// error if input matches no flag
+    if (flags == -1) {
+        printf("Invalid mode: %s\n", args[2]);
+        return;
+    }
+    // open returns descriptor of the file 
+    int fd = open(args[1], flags, 0644);
+	// args[1] -> char* with name of file
+	// flags -> constant with open flags
+	// 0664 -> file permissions (owner R/W , group R , others R)
+    if (fd == -1) {
+        perror("Imposible to open file");
+        return;
+    }
+
+    tOFilesItem item;
+    item.fd = fd;
+    item.dup_of=-1;
+    strcpy(item.name, args[1]);
+    strcpy(item.mode, args[2]);
+    
+    if (insertItemF(&ShellState->OFList, item))
+        printf("Added entry %d to open files list\n",fd);
+    else printf("Error: couldn't open file\n");
+}
+
+void cmd_close(char *args[], tShellState *ShellState) {
+
+    if (args[1] == NULL) {
+        print_invalid_usage();
+        return;
+    }
+    
+    if (strcmp(args[1], "--help") == 0) { help_close(); return; }
+
+    int fd = atoi(args[1]);
+
+    if (close(fd) == -1) {
+        perror("Imposible to close descriptor'");
+        return;
+    }
+
+    deleteAtPosF(&ShellState->OFList,
+    	findItemF(ShellState->OFList, fd)); // No need to check if file descriptor exists as of thanks to beforehand close syscall
+}
+
+
+void cmd_dup(char *args[], tShellState *ShellState) {
+
+    if (args[1] == NULL) {
+        print_invalid_usage();
+        return;
+    }    
+
+	if (strcmp(args[1], "--help") == 0) { help_dup(); return; }
+
+    int oldfd, newfd;
+    if (strcmp(args[1],"0")==0) {
+        oldfd=0;
+    } else {
+        oldfd=atoi(args[1]);
+        if (oldfd==0) {
+            printf("Can't dup fd %d\n",oldfd);
+            return;
+        }
+    }
+    newfd = dup(oldfd);
+    if (newfd == -1) {
+        perror("Imposible to make dup of descriptor");
+        return;
+    }
+
+    tPosF pos = findItemF(ShellState->OFList, oldfd);
+    tOFilesItem oldItem = getItemF(ShellState->OFList, pos);
+    
+    tOFilesItem newItem;
+    newItem.fd = newfd;
+    newItem.dup_of = oldfd;
+    strcpy(newItem.name, oldItem.name);
+    strcpy(newItem.mode, oldItem.mode);
+
+    if (!insertItemF(&ShellState->OFList, newItem)) {
+        printf("Error: could not insert duplicated fd into list\n");
+        close(newfd);
+    }
+}
+
+void cmd_infosys(char *args[], tShellState *ShellState) {
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_infosys(); return; }
+    struct utsname info;
+    if (uname(&info) == -1) {
+        perror("Imposible to retrieve system info'");
+        return;
+    }
+    printf("%s (%s), OS: %s-%s-%s\n",info.nodename, info.machine, info.sysname, info.release, info.version);
+}
+
+void cmd_listopen(char *args[], tShellState *ShellState) {
+
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_listopen(); return; }
+	
+    tPosF pos = firstF(ShellState->OFList);
+    while (pos!=LNULL) {
+        tOFilesItem item = getItemF(ShellState->OFList, pos);
+        if (item.dup_of==-1) {
+            printf("descriptor: %d , %s  %s\n",
+            item.fd,
+            item.name,
+            item.mode);
+        } else {
+            printf("descriptor: %d , duplicate of %d (%s) %s\n",
+                   item.fd,
+                   item.dup_of,
+                   item.name,
+                   item.mode);
+        }
+        pos = nextF(ShellState->OFList, pos);
+    }
+}
+
+
+void cmd_exit(char *args[], tShellState *ShellState) {
+    if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_exit(); return; }
+    clearListH(&ShellState -> HistoricList);
+    clearListF(&ShellState -> OFList);
+    freeBlocks(&ShellState -> MemList);
+    exit(0);
+}
+
+
+
+/* P1 FUNCTIONS (NON-HELP FUNCTIONS) */
+
+
+
+void cmd_create(char *args[], tShellState *ShellState) {
+    //Checks the -f argument is passed
+    if (args[1] == NULL) print_invalid_usage();
+    	
+    if (strcmp(args[1], "--help") == 0) { help_create(); return; }
+    	
+    if (strcmp(args[1], "-f") == 0) {
+		if (args[2] == NULL) {
+			print_invalid_usage();
+	        return;
+	    }
+		const char* filename = args[2];   //Tries to open the file in read/write mode
+	    FILE* fp = fopen(filename, "w+");
+	    if (!fp) {
+	        perror("Imposible to create file");
+	        return;
+	    }
+	    fclose(fp);
+	    return;
+	}
+    
+    //Case -f not passed
+    const char* dirname = args[1];
+    // Creates the directory with permissions read/write/execute
+    
+	if (mkdir(dirname, 0777) != 0)
+        perror("Imposible to create directory");
+}
+
+
+void cmd_setdirparams(char *args[], tShellState *ShellState) {
+	size_t i;
+	for (i = 1 ; args[i] != NULL ; i++) {
+		if (strcmp(args[i], "long") == 0)
+            ShellState->dirParams.long_format = true;
+        else if (strcmp(args[i], "short") == 0)
+            ShellState->dirParams.long_format = false;
+        else if (strcmp(args[i], "hid") == 0)
+            ShellState->dirParams.show_hid = true;
+        else if (strcmp(args[i], "nohid") == 0)
+            ShellState->dirParams.show_hid = false;
+        else if (strcmp(args[i], "link") == 0)
+            ShellState->dirParams.link = true;
+        else if (strcmp(args[i], "nolink") == 0)
+            ShellState->dirParams.link = false;
+        else if (strcmp(args[i], "reca") == 0)
+            ShellState->dirParams.rec_mode = REC_AFTER;
+        else if (strcmp(args[i], "recb") == 0)
+            ShellState->dirParams.rec_mode = REC_BEFORE;
+        else if (strcmp(args[i], "norec") == 0)
+            ShellState->dirParams.rec_mode = REC_OFF;
+    }
+        //Displays the current settings if no parameters were provided
+	if (i == 1) cmd_getdirparams(args, ShellState);
+}
+
+
+void cmd_getdirparams(char *args[], tShellState *ShellState) {
+    char buffer[64];
+    
+    if (args[1] != NULL && (strcmp(args[1], "--help")) == 0) { help_getdirparams(); return; }
+    
+    strcpy(buffer, "Listing: ");
+    strcat(buffer, ShellState->dirParams.long_format ? "Long " : "Short ");
+    strcat(buffer, ShellState->dirParams.link ? "with links, " : "no links, ");
+    
+    
+    //Append information about the recursive mode
+    switch(ShellState->dirParams.rec_mode) {
+        case REC_OFF :
+            strcat(buffer, "non-recursive ");
+            break;
+        case REC_BEFORE :
+            strcat(buffer, "recursive (before) ");
+            break;
+        case REC_AFTER :
+            strcat(buffer, "recursive (after) ");
+            break;
+    }
+    
+    
+    //Append information about the hidden files
+    strcat(buffer, ShellState->dirParams.show_hid ? "with hidden files\n" : "\n");
+    
+    printf("%s", buffer);
+
+}	
+
+void cmd_dir(char *args[], tShellState *ShellState) {
+
+    //Show the curent directory if there are no args
+    if (args[1] == NULL) {
+        char path[PATH_MAX];
+       	if (getcwd(path, sizeof(path)) == NULL) { perror("Imposible to access directory"); return; }
+        print_dir(path, ShellState->dirParams);
+        return;
+    }
+    
+    if (strcmp(args[1], "--help") == 0) { help_dir(); return; }
+    
+    //When the arg is -d
+    if (strcmp(args[1], "-d") == 0) {
+        if (args[2] == NULL) { print_invalid_usage(); return; }
+        for (int i = 2; args[i] != NULL; i++) {
+            if (isDir(args[i])) {
+                print_dir(args[i], ShellState->dirParams);
+            } else {
+                print_file(args[i], ShellState->dirParams);
+            }
+        }
+        return;
+    }
+    // Without -d
+    for (int i = 1; args[i] != NULL; i++) {
+        print_file(args[i], ShellState->dirParams);
+    }
+}
+
+
+void cmd_erase(char *args[], tShellState *ShellState) {
+    if (args[1] == NULL) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_erase(); return; }
+    
+    for (int i = 1; args[i] != NULL; i++) {
+        //Check if it is a directory
+        if ( isDir(args[i]) ) {
+            //Removes only if empty
+            if (rmdir(args[i]) == -1)
+                perror(args[i]);
+            else {
+                printf("Directory %s deleted\n", args[i]);
+         	}
+         	continue;   //Check the next argument
+        }
+
+        struct stat info;
+        
+        if (lstat(args[i], &info) == -1) {
+            perror(args[i]);
+            continue;
+        }
+        else {
+        	if (info.st_size == 0) {
+        	//Deletes the empty file
+            	if (unlink(args[i]) == -1)
+                	perror(args[i]);
+	            else
+	            	printf("File %s deleted\n", args[i]);
+        	}
+        	else {
+        		printf("File is not empty\n");
+			}        
+        }
+    }
+}
+
+
+void cmd_delrec(char *args[], tShellState *ShellState) {
+    if (args[1] == NULL) { print_invalid_usage(); return; }
+	if (strcmp(args[1], "--help") == 0) { help_delrec(); return; }
+	
+    for (int i = 1; args[i] != NULL; i++) {
+        struct stat st;
+
+        if (lstat(args[i], &st) == -1) {
+            perror(args[i]);
+            continue;
+        }
+		
+        if (isDir(args[i])) {
+            delete_dir(args[i]);
+        }
+    
+        else {
+            if (unlink(args[i]) == -1) {
+                perror(args[i]);
+            }
+        }
+    }
+}
+
+
+void cmd_lseek(char *args[], tShellState *ShellState) {
+
+    if (args[1] == NULL) { print_invalid_usage(); return; }
+    
+    if (strcmp(args[1], "--help") == 0) { help_memfill(); return; }
+    
+	if (args[2] == NULL || args[3] == NULL) { print_invalid_usage(); return; }
+    
+    if (args[1][0] == '-') { if (strcmp(args[1],"--help") == 0) { help_lseek(); } }
+    
+    //Converts the first argument to an integer
+    int fd = atoi(args[1]);
+    if (fd == 0 && strcmp(args[1], "0") != 0) {
+        printf("Invalid file descriptor: %s\n", args[1]);
+        return;
+    }
+    
+    //Converts the second argument to a long
+    long off = atol(args[2]);
+    int when;   //Used like a reference point
+
+    if (strcmp(args[3], "SEEK_SET") == 0) when = SEEK_SET;    //Offset from the beginning of the file
+    else if (strcmp(args[3], "SEEK_CUR") == 0) when = SEEK_CUR;   //Offset from the current file position 
+    else if (strcmp(args[3], "SEEK_END") == 0) when = SEEK_END;   // Offset from the end of the file
+    else {
+        printf("Invalid reference. Use 'lseek --help' for more info\n");
+        return;
+    }
+    
+    tPosF pos = findItemF(ShellState->OFList, fd);
+    if (pos == LNULL) {
+        printf("Descriptor %d not found in open files list\n", fd);
+        return;
+    }
+    
+    //Perform the seek operation on the file descriptor
+    off_t new_offset = lseek(fd, off, when);
+    if (new_offset == (off_t)-1) {
+        perror("Error setting offset");
+        return;
+    }
+
+    printf("New offset for descriptor %d is %ld\n", fd, (long)new_offset);
+
+}
+
+
+void cmd_writestr(char *args[], tShellState *ShellState) {
+    if (args[1] == NULL || args[2] == NULL) {    	
+		print_invalid_usage();
+        return;
+    }
+        	
+	if (strcmp(args[1], "--help") == 0) { help_writestr(); return; }
+	
+    int fd = atoi(args[1]);
+    if (fd <= 0 && strcmp(args[1], "0") != 0) {
+        printf("Invalid descriptor: %s\n", args[1]);
+        return;
+    }
+
+    //Initialization off an empty buffer
+    char str[MAX_INPUT] = "";
+	
+    for (int i = 2; args[i] != NULL; i++) {
+        strcat(str, args[i]);
+        if (args[i + 1] != NULL)    //Add space between words
+            strcat(str, " ");
+    }
+    
+    size_t len = strlen(str);
+    ssize_t written = write(fd, str, len);    //Returns the number of bytes successfully written (or -1 if errors)
+    
+    if (written == -1) {
+        perror("writestr");
+    	printf("Could not write %ld bytes in descriptor %d\n",len,fd);
+        return;
+    }
+    
+    printf("Written at descriptor %d: %s\n", fd, str);
+}
+
+
+
+/* P2 FUNCTIONS (NON-HELP FUNCTIONS) */
+
+
+
+void cmd_malloc(char *args[], tShellState *ShellState) {
+
+	// Case no args passed -> Print list of allocated blocks
+    if (args[1] == NULL) {
+        printListMallocM(ShellState->MemList);
+        return;
+    }
+        	
+	if (strcmp(args[1], "--help") == 0) { help_malloc(); return; }
+
+	// Case of trying to build a block
+    if (strcmp(args[1], "-free") != 0) {
+
+        long unsigned int n = strtoul(args[1], NULL, 10);
+        
+        if (n == 0) { printf("Cannot allocate 0 bytes\n"); return; }
+
+        void *ptr = malloc(n);
+        if (!ptr) {
+            printf("Malloc failed\n");
+            return;
+        }
+
+        tItemM item = DEFAULT_ITEM_M;
+        item.addr = ptr;
+        item.size = n;
+        item.alloc_mode = MEM_MALLOC;
+
+        insertItemM(&ShellState->MemList, item);
+
+        printf("Allocated %ld bytes at %p\n", n, ptr);
+        return;
+    }
+
+	// Case of usage of -free
+    if (args[2] == NULL) {
+		print_invalid_usage();
+        return;
+    }
+
+    size_t n = (size_t)strtol(args[2], NULL, 10);
+    if (errno == ERANGE || errno == EINVAL) { perror(args[2]); return; }
+
+	tPosM pos = findMallocItemM(ShellState->MemList, n);
+	if (pos == LNULL) {
+		printf("Block of size %ld not found.\n",n);
+		return;
+	}
+	tItemM item = getItemM(ShellState->MemList, pos);
+	freeMalloc(&ShellState->MemList, pos);
+    printf("Freed block of size %ld at address %p\n", n, item.addr);
+    
+}
+
+void cmd_mmap(char *args[], tShellState *ShellState) {
+	
+    if (args[1] == NULL) { printListMMapM(ShellState->MemList); return; }
+        	
+    if (strcmp(args[1], "--help") == 0) { help_mmap(); return; }
+    
+    if (strcmp(args[1], "-free") == 0) {
+        if (args[2] == NULL) {    	
+			print_invalid_usage();
+            return;
+        }
+            
+        char *filename = args[2];
+        
+        tPosM pos = findMMapItemM(ShellState->MemList, filename);
+        if (pos != LNULL) {
+        	freeMMap(&ShellState->MemList, pos);
+        	return;
+        }
+        printf("Error: file %s was not mapped\n", filename);
+        return;
+    }
+    
+    if (args[2] == NULL) {
+		print_invalid_usage();
+        return;
+    }
+    do_mmap(args, &ShellState->OFList, &ShellState->MemList);
+}
+
+void cmd_mem(char *args[], tShellState *ShellState) {
+    int l1, l2, l3;
+    
+    static int si1 = 11, si2 = 22, si3 = 33;
+    static int sni1, sni2, sni3;
+
+    if (args[1] == NULL) { print_invalid_usage(); return; }
+    
+    if (strcmp(args[1], "--help") == 0) { help_mem(); return; }
+    
+    if (args[1] && strcmp(args[1], "-funcs") == 0) {
+        printf("Program functions   %p    %p    %p\n", cmd_malloc, cmd_read, cmd_write);
+        printf("Library functions   %p    %p    %p\n", printf, malloc, strcpy);
+        return;
+    }
+    
+    else if (args[1] && strcmp(args[1], "-vars") == 0) {
+        printf("Local variables    %p   %p    %p\n", &l1, &l2, &l3);
+        printf("Global variables    %p    %p    %p\n", &g1, &g2, &g3);
+        printf("Var (N.I.) global   %p    %p    %p\n", &ng1, &ng2, &ng3);
+        printf("Static variables    %p    %p    %p\n", &si1, &si2, &si3);
+        printf("Var (N.I.) static   %p    %p    %p\n", &sni1, &sni2, &sni3);
+        return;
+    }
+    
+    else if (args[1] && strcmp(args[1], "-blocks") == 0) {
+        printf("******List of blocks assign to the process %d\n", getpid());
+        printListMallocM(ShellState->MemList);
+        printListMMapM(ShellState->MemList);
+        printListSharedM(ShellState->MemList);
+    }
+    
+    else if (args[1] && strcmp(args[1], "-all") == 0) {
+    
+        // -vars
+        printf("Local variables    %p   %p    %p\n", &l1, &l2, &l3);
+        printf("Global variables    %p    %p    %p\n", &g1, &g2, &g3);
+        printf("Var (N.I.) global   %p    %p    %p\n", &ng1, &ng2, &ng3);
+        printf("Static variables    %p    %p    %p\n", &si1, &si2, &si3);
+        printf("Var (N.I.) static   %p    %p    %p\n", &sni1, &sni2, &sni3);
+        
+        // -funcs
+        printf("Program functions   %p    %p    %p\n", cmd_malloc, cmd_read, cmd_write);
+        printf("Library functions   %p    %p    %p\n", printf, malloc, strcpy);
+        
+        // -blocks
+        printf("******List of blocks assign to the process %d\n", getpid());
+        printListMallocM(ShellState->MemList);
+        printListMMapM(ShellState->MemList);
+        printListSharedM(ShellState->MemList);
+        
+        return;
+    }
+    
+    else if (args[1] && strcmp(args[1], "-pmap") == 0) {
+        do_pmap();
+        return;
+    }
+    
+    else print_invalid_usage();
+}
+
+void cmd_free(char *args[], tShellState *ShellState) {
+
+	if (args[1] == NULL) { print_invalid_usage(); return; }
+	
+	if (strcmp(args[1], "--help") == 0) { help_free(); return; }
+    
+    void *p = stringToPointer(args[1]);
+
+    tPosM pos = findItemM(ShellState->MemList, p);
+    tItemM block = getItemM(ShellState->MemList, pos);
+    
+    if (block.alloc_mode == MEM_MALLOC) {
+    	freeMalloc(&ShellState->MemList, pos);
+    }
+    else if (block.alloc_mode == MEM_MMAP) {
+		freeMMap(&ShellState->MemList, pos);
+    }
+    else if (block.alloc_mode == MEM_SHARED) {
+		freeShared(&ShellState->MemList, pos);
+    }
+}
+
+void cmd_memfill(char *args[], tShellState *ShellState) {
+    if (!args[1]) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_memfill(); return; }
+    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+    
+    
+    void *addr = stringToPointer(args[1]);
+    if (!addr) { perror("Invalid pointer"); return; }
+    
+    if (!findItemM(ShellState->MemList, addr)) { 
+    	printf("Invalid address\n"); 
+    	return; }
+    
+    size_t cont = (size_t)atoll(args[2]);
+    if (cont == 0) { print_invalid_usage(); return; }
+    
+    unsigned char ch = (unsigned char)args[3][0];
+    
+    fillMem(addr, cont, ch);
+    printf("Filled %zu bytes at %p with character '%c'\n", cont, addr, ch);
+    
+}
+
+void cmd_memdump(char *args[], tShellState *ShellState) {
+
+    if (!args[1]) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_memdump(); return; }
+    if(!args[2]) { print_invalid_usage(); return; }
+    
+    void *addr = stringToPointer(args[1]);
+    if (!addr) { perror("Invalid pointer"); return; }
+    
+    if (!findItemM(ShellState->MemList, addr)) { printf("Invalid address\n"); return; }
+    
+    size_t cont = (size_t) strtoul(args[2], NULL, 10);
+    if (cont == 0) {
+        printf("Must indicate a positive number of bytes to dump\n");
+        return;
+    }
+    
+    unsigned char *paddr = (unsigned char *)addr; // Convert so we can iterate
+
+    for (size_t offset = 0; offset < cont; offset += DEFAULT_DUMP_SIZE) {
+    
+        size_t block_size = (cont - offset > DEFAULT_DUMP_SIZE) ? DEFAULT_DUMP_SIZE : cont - offset;
+      
+        for (size_t i = 0; i < block_size; i++) {
+              unsigned char c = paddr[offset + i];
+              if (c == '\n')
+                  printf("\\n ");
+              else if (c == '\t')
+                  printf("\\t ");
+              else if (c == '\r')
+                  printf("\\r ");
+              else if (isprint(c))
+                  printf("%c  ", c);
+              else
+                  printf(" ");
+          }
+          
+          printf("\n");
+          
+          for (size_t i = 0; i < block_size; i++) {
+            printf("%02X ", paddr[offset + i]);
+        }
+        printf("\n");
+    }
+}
+
+
+
+
+void cmd_readfile(char *args[], tShellState* ShellState) {
+    if (args[1] == NULL) { print_invalid_usage(); return;}
+    if (strcmp(args[1], "--help") == 0) { help_readfile(); return; }
+
+    void *p = stringToPointer(args[2]);
+    if (p == NULL) { perror("Invalid pointer\n"); return; }
+    
+    if (!findItemM(ShellState->MemList, p)) { printf("Invalid address\n"); return; }
+    	
+	size_t cont = -1;
+	if (args[2] != NULL) cont = (size_t) atoll(args[2]);
+
+    ssize_t bytes_read = readFile(args[1], p, cont);
+    if (bytes_read == -1)
+        perror("Impossible to read file\n");
+    else
+        printf("Read %lld bytes of %s into %p\n", (long long)bytes_read, args[0], p);
+}
+
+void cmd_writefile(char* args[], tShellState* ShellState) {
+    if (!args[1]) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_writefile(); return; }
+    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+
+    void *p = stringToPointer(args[2]);
+    if (p == NULL) {
+        perror("Invalid pointer\n");
+        return;
+    }
+
+    size_t cont = (size_t)atoll(args[2]);
+    if (cont == 0) {
+    	print_invalid_usage();
+        return;
+    }
+    
+    ssize_t bytes_write = writeFile(args[0], p, cont);
+    if (bytes_write == -1)
+        perror("Impossible to write file\n");
+    else
+        printf("Write %lld bytes of %p into %s\n", (long long)bytes_write, p, args[0]);
+}
+
+void cmd_read(char* args[], tShellState* ShellState) {
+    if (!args[1]) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_read(); return; }
+    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+
+    int fd = strtol(args[1], NULL, 10);
+    if (!findItemF(ShellState->OFList, fd)) { printf("Invalid descriptor\n"); return; }
+    
+    void *p = stringToPointer(args[2]);
+    if (!p) { perror("Invalid pointer"); return; }
+    
+    if (!findItemM(ShellState->MemList, p)) { printf("Invalid address\n"); return; }
+    
+    size_t cont = (size_t)atoll(args[3]);
+    if (cont == 0) {
+		print_invalid_usage();
+        return;
+    }
+
+    tPosF pos = findItemF(ShellState->OFList, fd);        //Check if it is open
+    if (pos == LNULL) {
+        printf("Descriptor %d is not in the open files list\n", fd);
+        return;
+    }
+
+    ssize_t bytes_read = read(fd, p, cont);
+    if (bytes_read == -1) { perror("Error reading file"); return; }
+
+    printf("Read %zd bytes from descriptor %d into address %p\n", bytes_read, fd, p);
+}
+
+void cmd_write(char* args[], tShellState* ShellState) {
+    if (!args[1]) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_write(); return; }
+    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+    
+    int fd = atoi(args[1]);
+    if (fd == 0 && strcmp(args[1], "0") != 0) {
+        printf("Invalid descriptor: %s\n", args[1]);
+        return;
+    }
+    
+    void *p = stringToPointer(args[2]);
+    if (!p) { perror("Invalid pointer\n"); return; }
+    
+    size_t cont = (size_t)atoll(args[3]);
+    if (cont == 0) {
+        printf("Must indicate the number of bytes to write\n");
+        return;
+    }
+
+    tPosF pos = findItemF(ShellState->OFList, fd); //Check if it is open
+    if (pos == LNULL) { printf("Descriptor %d is not in the open files list\n", fd); return; }
+
+    ssize_t bytes_write = write(fd, p, cont);
+    if (bytes_write == -1) {
+        perror("Error writting file");
+        return;
+    }
+
+    printf("Write %zd bytes from descriptor %d into address %p\n", bytes_write, fd, p);
+}
+
+void cmd_recurse(char *args[], tShellState *ShellState) {
+    if (!args[1]) {
+			print_invalid_usage();
+        return;
+    }
+    
+    if (strcmp(args[1], "--help") == 0) {help_recurse(); return;}
+    
+    int n = atoi(args[1]);
+    if (n <= 0) {
+        printf("Error: n must be > 0\n");
+        return;
+    }
+
+    recursive(n);
+}
+
+void cmd_shared(char *args[], tShellState *ShellState) {
+	// Using code from help code
+	// No args -> print shared memory blocks list
+	if (args[1]==NULL) { printListSharedM(ShellState->MemList); return; }
+	if (strcmp(args[1], "--help") == 0) { help_shared(); return; }
+	
+	key_t key;
+	
+	if (strcmp(args[1], "-create") == 0) {
+
+		size_t size;
+		void *p;
+		
+	   	key = (key_t) strtoul(args[2], NULL, 10);
+		size =(size_t) strtoul(args[3], NULL, 10);
+		
+		if (size<=0) { printf ("Can't allocate blocks of 0 bytes'\n"); return; }
+		
+		if ((p = obtainMemoryShmget(&ShellState->MemList, key, size)) != NULL) {
+			printf ("Allocated %lu bytes in %p\n",(unsigned long) size, p);
+			return; 
+			}
+		else {
+			printf("Impossible to allocate key shared memory %lu: %s\n",(unsigned long) key, strerror(errno));
+			return;
+		}
+	} else if (strcmp(args[1], "-free") == 0) {
+		if (args[2] == NULL) { print_invalid_usage(); return;
+		} else {
+			key = strtoul(args[2], NULL, 10);
+			tPosM pos = findSharedItemM(ShellState->MemList,key); // Retrieves position in list out of shared mem key
+    		if (pos == LNULL) { printf ("No shared memory block of such key is mapped\n"); return; }
+        	freeShared(&ShellState->MemList, pos);
+        	do_deleteKeyShared(key);
+		}
+	} else if (strcmp(args[1], "-delkey") == 0) {
+		if (args[2] != NULL) { 	do_deleteKeyShared(strtoul(args[2], NULL, 10)); return; }
+		else { print_invalid_usage(); return; }
+	} else doSharedAttach(args, &ShellState->MemList);
+}
+
+
+
+void cmd_help(char *args[], tShellState *ShellState) {
+    if (args[1]==NULL) {
+        help_dispatcher("help");
+        return;
+    }
+    help_dispatcher(args[1]);
+}
+
+
+
+tHelp helps[] = {
+    {"authors",help_authors},
+    {"getpid",help_getpid},
+    {"chdir",help_chdir},
+    {"getcwd",help_getcwd},
+    {"date",help_date},
+    {"hour",help_hour},
+    {"historic",help_historic},
+    {"open",help_open},
+    {"close",help_close},
+    {"dup",help_dup},
+    {"listopen",help_listopen},
+    {"infosys",help_infosys},
+    {"exit",help_exit},
+    {"help",help_help},
+    // P1 HELP FUNCTIONS
+    {"create",help_create},
+    {"setdirparams",help_setdirparams},
+    {"getdirparams",help_getdirparams},
+    {"dir",help_dir},
+    {"erase",help_erase},
+    {"delrec",help_delrec},
+    {"lseek",help_lseek},
+    {"writestr",help_writestr},
+    //P2 HELP FUNCTIONS
+    {"malloc", help_malloc},
+    {"mmap", help_mmap},
+    {"shared", help_shared},
+    {"free", help_free},
+    {"mem", help_mem},
+    {"memfill", help_memfill},
+    {"memdump", help_memdump},
+    {"readfile", help_readfile},
+    {"writefile", help_writefile},
+    {"read", help_read},
+    {"write", help_write},
+    {"recurse", help_recurse},
+    {NULL,help_help}
+};
+
+
+void help_dispatcher(char *args) {
+    unsigned short int i;
+    for (i = 0; helps[i].name != NULL; i++) {
+        if (strcmp(args,helps[i].name) == 0) {
+            helps[i].func();
+            return;
+        }
+    }
+    helps[i].func();
+}
+
+void help_authors() {
+    printf("\nauthors - List authors' names and/or logins\n"
+    	"\n'authors [OPTION]'\n"
+    	"\t-n\tOnly names\n"
+    	"\t-l\tOnly logins\n"
+    	);
+}
+
+void help_getpid() {
+    printf("\ngetpid - Show pid of shell\n"
+    	"\n'getpid [OPTION]'\n"
+    	"\t-p\tShow pid shell's parent process\n"
+    	);
+}
+
+void help_chdir() {
+    printf("\nchdir - Changes current shell's directory\n"
+    	"\n'chdir [PATH]'\n"
+    	"\tno args shows current directory\n"
+    	);
+}
+
+void help_getcwd() {
+    printf("\ngetcwd - Shows shell's current directory\n");
+}
+
+void help_date() {
+    printf("\ndate - Shows the date and/or the actual time\n"
+    	"\n'date [OPTION]'\n"
+    	"\t-d\tShow date (DD:MM:YY format)\n"
+    	"\t-h\tShow hour (hh:mm:ss format)\n"
+    	"\tno args shows both\n"
+    	);
+}
+
+void help_hour() {
+    printf("\ndate - Shows the actual time\n\n"
+    	"\thh:mm:ss format\n"
+    	);
+}
+
+void help_historic() {
+    printf("\nhistoric - List commands history.\n"
+    	"\n'historic [OPTION]'\n"
+           "\t-count\thistory dimension\n"
+           "\t-N\tshows N last commands\n"
+           "\tN\trepeats command N\n"
+           "\t-clear\tdeletes history\n"
+           );
+}
+
+void help_open() {
+    printf("\nopen - Opens file and adds it to open files list.\n"
+        "\n'open [PATH] [MODE]'\n"
+        "\tMODE - Opening mode"
+        "\t\tcr: O_CREAT\t ap: O_APPEND\n"
+        "\t\tex: O_EXCL\t ro: O_RDONLY\n"
+        "\t\trw: O_RDWR\t wo: O_WRONLY\n"
+        "\t\ttr: O_TRUNC\n"
+        );
+}
+
+void help_close() {
+    printf("\nclose - Closes file and deletes its entry from open files list\n"
+    	"\n'close [FD]'\n"
+    	"\tFD - File descriptor of file to be closed (use listopen to check opened files)\n"
+    );
+}
+
+void help_dup() {
+    printf("\ndup - Duplicates descriptor of file fd and adds one new entry to open files list\n"
+    	"\n'dup [FD]'\n"
+   		"\tFD - File descriptor of file to be duplicated (use listopen to check opened files)\n"
+    );
+}
+
+void help_listopen() {
+    printf("\nlistopen - List opened files\n"
+    	"\n'listopen'\n"
+    );
+}
+
+void help_infosys() {
+    printf("\ninfosys - Show information of the machine running the shell\n"
+    	"\n'infosys'\n"
+    );
+}
+
+void help_exit() {
+    printf("\nexit - End shell\n"
+    	"\n'exit'\n"
+    );
+}
+
+void help_bye() {
+    printf("\nbye - End shell.\n"
+    	"\n'bye'\n"
+    );
+}
+
+void help_quit() {
+    printf("\nquit - End shell.\n"
+    	"\n'quit'\n"
+    );
+}
+
+void help_help() {
+    printf("\nhelp - Show help.\n"
+    	"\n'help [CMD]'\n"
+        "\tCMD - Command of which help should be showed. List of commands:\n"
+        "\t\tP0: authors, getpid, chdir, getcwd, date, hour, historic.\n"
+        "\t\t    open, close, dup, listopen, infosys, exit, bye, quit, help.\n"
+        "\t\tP1: create, setdirparams, getdirparams, dir, erase, delrec, lseek, writestr.\n"
+        "\t\tP2: malloc, mmap, shared, free, memfill, memdump, mem, readfile, writefile, read, write, recurse.\n"
+        "\tuse '--help' as OPTION in any command to show help.\n"
+        );
+}
+
+// P1 HELP FUNCTIONS
+
+void help_create() {
+    printf("\ncreate - Create directory or file.\n"
+		"\n'create [OPTION] [NAME]'\n"
+		"\t-f\t create a file"
+		"\tno option will create a directory.\n"
+		);
+}
+
+void help_setdirparams() {
+    printf ("\nsetdirparams - Stablish listing parameters for dir command.\n"
+		"\n'setdirparams [PARAMS]'\n"
+		"\tPARAMS - Parameters to be set."
+		"\t\tlong|short\tlong or short format.\n"
+		"\t\thid|nohid\tlist hidden files.\n"
+		"\t\tlink|nolink\tlist dest symlinks.\n"
+		"\t\trecb|reca|norec\trecursively listing (recurse before, after or not.)\n"
+		"\tno params will show active parameters.\n"
+		);
+}
+
+void help_getdirparams() {
+    printf("\ngetdirparams - Show active listing parameters for dir command.\n"
+    	"\n'getdirparams\n'"
+    	);
+}
+
+void help_dir() {
+    printf("\ndir - List files.\n"
+    "\n'dir [OPTIONS] [PATH1] [PATH2] ...'\n"
+	"\t-d\tIf PATH is a directory, show its contents.\n"
+	);
+}
+
+void help_erase() {
+    printf("\nerase - Delete empty files and/or directories.\n"
+    	"\n'erase [PATH1] [PATH2] ...'\n"
+    	);
+}
+
+void help_delrec() {
+    printf("\nRecursively delete files and/or directories.\n"
+    	"\n'delrec [PATH1] [PATH2] ...'\n"
+    	);
+}
+
+void help_lseek() {
+    printf("\nlseek - Set offset in file.\n"
+    	"\n'lseek [FD] [OFF] [REF]'\n"
+    	"\tFD - File descriptor of file.\n"
+    	"\tOFF - Offset to be set.\n"
+    	"\tREF - Offset's reference.\n"
+        "\t\t\tSEEK_SET - beginning of the file.\n"
+		"\t\t\tSEEK_CUR - actual position.\n"
+		"\t\t\tSEEK_END - end of the file.\n");
+}
+
+void help_writestr() {
+    printf("\nwritestr - Write string in file.\n"
+    	"\n'writestr [FD] [STRING]'\n"
+    	"\nFD - File descriptor of file to be written.\n"
+    	);
+}
+
+// P2 HELP FUNCTIONS
+
+void help_malloc() {
+    printf("\nmalloc - Asign a block of memory with malloc.\n"
+    	"\n'malloc [OPTIONS] [SIZE]'\n"
+    	"\t-free\tDeallocates ONE block of size SIZE (previously allocated). Fails if no block of such size exists.\n"
+        "\tno OPTIONS allocates a block of memory of size SIZE asigned with malloc.\n"
+        );
+}
+
+void help_mmap() {
+    printf("\nmmap - Map a file.\n"
+    	"\n'mmap [OPTIONS] [PATH] [PERM]'\n"
+    	"\t-free\tunmaps file PATH.\n"
+    	"\tno option normally maps the file PATH.\n"
+    	"\tPERM - permissions to map the file with.\n"
+        "\tr|w|x\t Read and/or write and/or execute permission.\n");
+}
+
+void help_shared() {
+    printf("\nshared - Create a block of shared memory.\n"
+    	"\n'shared [OPTIONS] [KEY] [SIZE]'\n"
+    	"\t-create\tCreates block of shared memory and attaches it to the process address space. Updates the list of memory blocks\n"
+    	"\t\tKEY - Key of block created\n"
+    	"\t\tSIZE - SIZE of block created\n"
+    	"\t-free\tDetaches block of shared memory of key KEY (previously allocated) and deletes it from memory blocks list.\n"
+    	"\t-delkey\tRemoves block of shared memory of key KEY from system. The shared memory stays attached to the key.\n"
+    	"\tno OPTIONS nor KEY lists shared memory blocks allocated and their respective keys.\n "
+    	);
+}
+
+void help_free() {
+	printf("\nfree - Deallocate memory block and update blocks list.\n"
+		"\n'free [ADDR]'\n"
+		"\tADDR - Address of block to free\n"
+		);
+}
+
+void help_memfill() {
+	printf("\nmemfill - Fill memory with some character\n"
+		"\n'memfill [ADDR] [COUNT] [CH]'\n"
+		"\tADDR - Starting address to fill\n"
+		"\tCOUNT - Amount of bytes to fill\n"
+		"\tCH - Character to fill with\n"
+		);
+}
+
+void help_memdump() {
+	printf("\nmemdump - Dumps contents at some address to screen.\n"
+		"\n'memdump [ADDR] [COUNT]'\n"
+		"\tADDR - Address of memory at which contents are located\n"
+		"\tCOUNT - Amount of bytes to dump to screen\n"
+		);
+}
+
+void help_mem() {
+    printf("\nmem - Print addresses of different elements.\n"
+    	"\n'mem [OPTION]'\n"
+    	"\t-funcs\tPrint addresses of 3 program functions and 3 library functions.\n"
+    	"\t-vars\tPrint the addresses of 3 external, 3 external initialized, 3 static, 3 static initialized and 3 automatic variables.\n"
+    	"\t-blocks\tPrint the list of allocated blocks (smalloc, shared and pmap).\n"
+    	"\t-all\tPrint all of above.\n"
+    	"\t-pmap\tShow output of command pmap for shell's process.\n"
+    	);
+}
+
+void help_readfile() {
+    printf("\nreadfile - Read from a file.\n"
+    "\n'readfile [PATH] [ADDR] [COUNT]'\n"
+    "\tPATH - File to be read.\n"
+    "\tADDR - Address of memory where to read.\n"
+    "\tCOUNT - Amount of BYTES to read.\n"
+    );
+}
+
+void help_writefile() {
+    printf("\nwritefile - Write to a file.\n"
+    "\n'writefile [PATH] [ADDR] [COUNT]'\n"
+    "\tPATH - File to be written.\n"
+    "\tADDR - Address of memory where to write.\n"
+    "\tCOUNT - Amount of BYTES to write.\n"
+    );
+}
+
+void help_read() {
+    printf("\nread - Read from a file.\n"
+    "\n'read [FD] [ADDR] [COUNT]'\n"
+    "\tFD - File descriptor of (already opened) file to be read.\n"
+    "\tADDR - Address of memory where to read.\n"
+    "\tCOUNT - Amount of BYTES to read.\n"
+    );
+}
+
+void help_write() {
+    printf("\nwrite - Write from a file.\n"
+    "\n'write [FD] [ADDR] [COUNT]'\n"
+    "\tFD - File descriptor of (already opened) file to be written.\n"
+    "\tADDR - Address of memory where to write.\n"
+    "\tCOUNT - Amount of BYTES to write.\n"
+    );
+}
+
+void help_recurse() {
+    printf("\nrecurse - Executes recursive function.\n"
+	    "\n'recurse [N]'\n"
+	    "\tN - number of times to be executed.\n"
+	    );
+}
+
+
+
+
+

@@ -1,0 +1,7 @@
+# Ignore compiled files
+*.o
+*.out
+
+*.pdf
+/reference-shell
+/test
