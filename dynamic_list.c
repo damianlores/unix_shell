@@ -355,7 +355,7 @@ void printListMMapM(tListM L) {
 void printListSharedM(tListM L) {
     while (L != NULL) {
     	if (L->data.alloc_mode==MEM_SHARED)
-        	printf("%-24p %-16ld %-30s shared (key %ld)\n", L->data.addr, L->data.size, L->data.time, L->data.key);
+        	printf("%-24p %-16ld %-30s shared (key %d)\n", L->data.addr, L->data.size, L->data.time, L->data.key);
         L = L->next;
     }
 }
