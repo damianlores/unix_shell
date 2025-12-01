@@ -326,8 +326,12 @@ tPosM nextM(tListM L, tPosM pos) {
 
 
 void printListM(tListM L) {
+	char type[7];
     while (L != NULL) {
-        printf("Address: %p   Size: %ld\n", L->data.addr, L->data.size);
+    		if (L->data.alloc_mode == MEM_MALLOC) strcpy(type, "malloc");
+    		if (L->data.alloc_mode == MEM_MMAP) strcpy(type, "mmap");
+    		if (L->data.alloc_mode == MEM_SHARED) strcpy(type, "shared");
+        	printf("%-24p %-16ld %-30s %s", L->data.addr, L->data.size, L->data.time, type);
         L = L->next;
     }
 }
@@ -335,7 +339,7 @@ void printListM(tListM L) {
 void printListMallocM(tListM L) {
     while (L != NULL) {
     	if (L->data.alloc_mode==MEM_MALLOC)
-        	printf("Address: %p   Size: %ld\n", L->data.addr, L->data.size);
+        	printf("%-24p %-16ld %-30s malloc\n", L->data.addr, L->data.size, L->data.time);
         L = L->next;
     }
 }
@@ -343,7 +347,7 @@ void printListMallocM(tListM L) {
 void printListMMapM(tListM L) {
     while (L != NULL) {
     	if (L->data.alloc_mode==MEM_MMAP)
-        	printf("Address: %p   Size: %ld\n", L->data.addr, L->data.size);
+        	printf("%-24p %-16ld %-30s mmap\n", L->data.addr, L->data.size, L->data.time);
         L = L->next;
     }
 }
@@ -351,7 +355,7 @@ void printListMMapM(tListM L) {
 void printListSharedM(tListM L) {
     while (L != NULL) {
     	if (L->data.alloc_mode==MEM_SHARED)
-        	printf("Address: %p   Size: %ld\n", L->data.addr, L->data.size);
+        	printf("%-24p %-16ld %-30s shared (key %ld)\n", L->data.addr, L->data.size, L->data.time, L->data.key);
         L = L->next;
     }
 }
