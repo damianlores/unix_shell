@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <time.h>
 
 
 #define SIZE 1024
@@ -40,10 +41,17 @@ void *obtainMemoryShmget(tListM *memList, key_t key, size_t size) {
     }
     shmctl (id, IPC_STAT, &s); // if not create, we need size, which is s.shm_segsz
     
+	time_t raw_time = time(NULL);
+    struct tm *tm_info;
+    char time_buffer[TIME_BUFFER_MAX];
+    tm_info = localtime(&raw_time); 
+    strftime(time_buffer, sizeof(time_buffer), "%a %b %d %H:%M:%S %Y", tm_info);
+    
     // Update list
     tItemM item = DEFAULT_ITEM_M; // Unchanged values aren't usable as type of allocation is not a mapped file (filename, fd)
     item.addr = p;
     item.size = s.shm_segsz;
+    strcpy(item.time, time_buffer);
     item.alloc_mode = MEM_SHARED;
     item.key = key;
 
@@ -78,10 +86,16 @@ void doSharedAttach(char *args[], tListM *memList) {
         shmdt(addr); 
         return;
     }
+	time_t raw_time = time(NULL);
+    struct tm *tm_info;
+    char time_buffer[TIME_BUFFER_MAX];
+    tm_info = localtime(&raw_time); 
+    strftime(time_buffer, sizeof(time_buffer), "%a %b %d %H:%M:%S %Y", tm_info);
 
     tItemM item = DEFAULT_ITEM_M;
     item.addr = addr;
     item.size = s.shm_segsz;
+    strcpy(item.time, time_buffer);
     item.alloc_mode = MEM_SHARED;
     item.key = key;
 
@@ -114,14 +128,21 @@ void *mapFile(char *file, int protection, tListF *OFList, tListM *memList) {
     	strcpy(itemF.mode, "ro");
     insertItemF(OFList, itemF);
     
-    tItemM itemM = DEFAULT_ITEM_M;
-    itemM.addr = p;    
-    itemM.size = st.st_size;
-    itemM.alloc_mode = MEM_MMAP;
-    itemM.fd = fd;
-    strcpy(itemM.file, file);
+	time_t raw_time = time(NULL);
+    struct tm *tm_info;
+    char time_buffer[TIME_BUFFER_MAX];
+    tm_info = localtime(&raw_time); 
+    strftime(time_buffer, sizeof(time_buffer), "%a %b %d %H:%M:%S %Y", tm_info);
     
-    insertItemM(memList, itemM);
+    tItemM item = DEFAULT_ITEM_M;
+    item.addr = p;    
+    item.size = st.st_size;
+    strcpy(item.time, time_buffer);
+    item.alloc_mode = MEM_MMAP;
+    item.fd = fd;
+    strcpy(item.file, file);
+    
+    insertItemM(memList, item);
 /* Guardar en la lista    InsertarNodoMmap (&L,p, s.st_size,df,fichero); */
 /* Gurdas en la lista de descriptores usados df, fichero*/
     return p;
@@ -315,8 +336,6 @@ void fillMem (void *p, size_t cont, unsigned char byte) {
 	for (i=0; i<cont;i++)
 		arr[i]=byte;
 }
-
-
 
 
 
