@@ -572,13 +572,13 @@ void cmd_lseek(char *args[], tShellState *ShellState) {
     else { print_invalid_args(args[3]); return; }
     
     tPosF pos = findItemF(ShellState->OFList, fd);
-    if (pos == LNULL) { printf("Descriptor %d not found in open files list\n", fd); return; }
+    if (pos == LNULL) { printf("Descriptor %ld not found in open files list\n", fd); return; }
     
     //Perform the seek operation on the file descriptor
     off_t new_offset = lseek(fd, off, where);
     if (new_offset == (off_t)-1) { perror("Error setting offset"); return; }
 
-    printf("New offset for descriptor %d is %ld\n", fd, (long)new_offset);
+    printf("New offset for descriptor %ld is %ld\n", fd, (long)new_offset);
 
 }
 
@@ -586,7 +586,7 @@ void cmd_lseek(char *args[], tShellState *ShellState) {
 void cmd_writestr(char *args[], tShellState *ShellState) {
     if (args[1] == NULL) { print_invalid_usage(); return; }
 	if (strcmp(args[1], "--help") == 0) { help_writestr(); return; }
-	if (args[2] == NULL) print_too_few_arguments(); return; }
+	if (args[2] == NULL) { print_too_few_arguments(); return; }
 		
     ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
     if (fd < 0) { print_invalid_args(args[1]); return; }
@@ -604,7 +604,7 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
     ssize_t written = write(fd, str, len);    //Returns the number of bytes successfully written (or -1 if error)
     
     if (written == -1) { perror("writestr"); return;}
-    printf("Written at descriptor %d: %s\n", fd, str);
+    printf("Written at descriptor %ld: %s\n", fd, str);
 }
 
 
@@ -624,56 +624,44 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
     	printf("****** List of malloc blocks assigned to process %d\n", getpid());
         printListMallocM(ShellState->MemList);
         return;
-    }
-        	
+    }   	
 	if (strcmp(args[1], "--help") == 0) { help_malloc(); return; }
 
-	// Case of trying to build a block
-    if (strcmp(args[1], "-free") != 0) {
+    if (strcmp(args[1], "-free") == 0) {
+		if (args[2] == NULL) { print_too_few_arguments(); return; }
 
-        long unsigned int n = strtoul(args[1], NULL, 10);
-        
-        if (n == 0) { printf("Cannot allocate 0 bytes\n"); return; }
+		ssize_t n = (ssize_t)strtol(args[2], NULL, 10);
+		if (errno == ERANGE || errno == EINVAL) { perror(args[2]); return; }
 
-        void *ptr = malloc(n);
-        if (!ptr) {
-            printf("Malloc failed\n");
-            return;
-        }
-		time_t raw_time = time(NULL);
-    	struct tm *tm_info;
-		char time_buffer[TIME_BUFFER_MAX];
-		tm_info = localtime(&raw_time); 
-		strftime(time_buffer, sizeof(time_buffer), "%a %b %d %H:%M:%S %Y", tm_info);
-    	
-        tItemM item = DEFAULT_ITEM_M;
-        item.addr = ptr;
-        item.size = n;
-        item.alloc_mode = MEM_MALLOC;
-    	strcpy(item.time, time_buffer);
-        insertItemM(&ShellState->MemList, item);
-
-        printf("Allocated %ld bytes at %p\n", n, ptr);
-        return;
-    }
-
-	// Case of usage of -free
-    if (args[2] == NULL) {
-		print_invalid_usage();
-        return;
-    }
-
-    size_t n = (size_t)strtol(args[2], NULL, 10);
-    if (errno == ERANGE || errno == EINVAL) { perror(args[2]); return; }
-
-	tPosM pos = findMallocItemM(ShellState->MemList, n);
-	if (pos == LNULL) {
-		printf("Block of size %ld not found.\n",n);
+		tPosM pos = findMallocItemM(ShellState->MemList, n);
+		if (pos == LNULL) { printf("Block of size %ld not found.\n",n); return; }
+		tItemM item = getItemM(ShellState->MemList, pos);
+		
+		freeMalloc(&ShellState->MemList, pos);
+		printf("Freed block of size %ld at address %p\n", n, item.addr);
 		return;
-	}
-	tItemM item = getItemM(ShellState->MemList, pos);
-	freeMalloc(&ShellState->MemList, pos);
-    printf("Freed block of size %ld at address %p\n", n, item.addr);
+    }
+	
+	long unsigned int n = strtoul(args[1], NULL, 10);    
+    if (n == 0) { printf("Cannot allocate 0 bytes\n"); return; }
+
+    void *ptr = malloc(n);
+	if (!ptr) { perror("Could not allocate memory"); return; }
+	
+	time_t raw_time = time(NULL);
+    struct tm *tm_info;
+	char time_buffer[TIME_BUFFER_MAX];
+	tm_info = localtime(&raw_time); 
+	strftime(time_buffer, sizeof(time_buffer), "%a %b %d %H:%M:%S %Y", tm_info);
+    	
+    tItemM item = DEFAULT_ITEM_M;
+    item.addr = ptr;
+    item.size = n;
+    item.alloc_mode = MEM_MALLOC;
+    strcpy(item.time, time_buffer);
+    insertItemM(&ShellState->MemList, item);
+
+    printf("Allocated %ld bytes at %p\n", n, ptr);
     
 }
 
