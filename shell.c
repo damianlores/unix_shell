@@ -21,6 +21,7 @@ void printPrompt() {
 
 bool inputRead(char* input) {
 	if (fgets(input, MAX_INPUT, stdin)==NULL) return false;
+	
 	if (strchr(input, '\n') == NULL) {
         int c;
         bool exceed = false;
@@ -30,17 +31,15 @@ bool inputRead(char* input) {
     return true;
 }
 
-void inputProcess(char* input , tShellState* ShellState) {
-
+void inputProcess(char* input, tShellState* ShellState) {    
     char* args[MAX_INPUT/2];
-    short unsigned int argc = sliceChain(input,args);
-
-    if (argc == 0) return;
-
+    
     tHistoricItem temp;
+    snprintf(temp.input, MAX_INPUT, "%s", input);
 
-    strcpy(temp.cmd,input);
-
+    if (sliceChain(input, args) == 0) return;
+    
+    temp.input[strlen(temp.input)-1] = '\0';
     if (!insertItemH(&ShellState->HistoricList, temp)) {
         printf("There has been a problem loading the command in memory\n");
         return;

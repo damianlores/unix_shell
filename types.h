@@ -11,8 +11,8 @@
 
 // ADT of historic list item
 typedef struct {
-    char cmd[MAX_INPUT/2];
-    short unsigned int id;
+    char input[MAX_INPUT];
+    size_t id;
 } tHistoricItem;
 
 // ADT of open files list item

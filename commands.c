@@ -88,6 +88,13 @@ tCommand commands[] = {
 void print_invalid_usage() { 
 	printf("Wrong usage. Run with '--help' to show help.\n");
 }
+void print_too_few_arguments() { 
+	printf("Too few arguments. Run with '--help' to show help.\n");
+}
+void print_invalid_args(char* args) { 
+	printf("Invalid arguemnts: %s\n", args);
+}
+
 
 bool cmd_dispatcher(char *args[], tShellState* ShellState) {
     for (size_t i = 0; commands[i].name != NULL; i++) {
@@ -205,46 +212,32 @@ void cmd_historic(char *args[], tShellState *ShellState) {
     // Given n to the printLastNH function is -1 if no flags are received, as a result
     // the whole list is printed.
     if (args[1]==NULL) printLastNH(ShellState->HistoricList, -1);
+    
     else if (strcmp(args[1], "--help") == 0) { help_historic(); return; }
+    
     else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %d\n",countH(ShellState->HistoricList));
+    
     else if (strcmp(args[1],"-clear")==0) clearListH(&ShellState->HistoricList);
+    
     // If none of the other flags was a match, start parsing by char '-'
     else if (args[1][0] == '-') {
         // Format: "-<number>"
-        int n = atoi(args[1] + 1);  // skip '-'
-        if (n <= 0) {
-            printf("Error: number must be greater than 0.\n");
-            return;
-        }
+        ssize_t n = (ssize_t)strtoul(args[1] + 1 /* this skips the '-' input*/ , NULL, 10);
+        if (n <= 0) { printf("Error: number must be greater than 0.\n"); return; }
         printLastNH(ShellState->HistoricList, n);
     }
     else {
-        // atoi retrieves 0 if it couldn't make int from char, so we check if input was 0
-        // to avoid problems with invalid inputs.
-        if (strcmp(args[1],"0")==0) {
-            tPosH temp = findItemH(ShellState->HistoricList,0);
-            inputProcess(getItemH(ShellState->HistoricList, temp).cmd, ShellState);
-            // tItemH.cmd is a char array , which is given to input process directly as
-            // there is no need for it to be stored
-        } else {
-			// If next char is not an integer the command is not valid, so id = 0 because of atoi function
-            unsigned int id = atoi(args[1]); 
-            if (id==0) {
-                printf("Invalid command.\n");
-            } else {
-            	// If input number of command to be run exceeds total number 
-            	// of historic commands, there is no command to be run
-                if (countH(ShellState->HistoricList) <= id) {
-                    printf("Error: Index out of bounds.\n");
-                    return;
-                }
-                // If every conditional was unsuccesful we can finally execute the n-th command of historic
-                tPosH temp = findItemH(ShellState->HistoricList,id);
-                inputProcess(getItemH(ShellState->HistoricList,temp).cmd , ShellState);
-            }
+        size_t id = strtoul(args[1], NULL, 10);
+        if (countH(ShellState->HistoricList) <= id) {
+            printf("Error: Index out of bounds.\n");
+            return;
         }
+    // If every conditional was unsuccesful we can finally execute the n-th command of historic
+    tPosH temp = findItemH(ShellState->HistoricList,id);
+    inputProcess(getItemH(ShellState->HistoricList,temp).input, ShellState);
     }
 }
+
 
 
 int mode_to_flags(char *args) {
@@ -297,20 +290,11 @@ void cmd_open(char *args[], tShellState* ShellState) {
 }
 
 void cmd_close(char *args[], tShellState *ShellState) {
-
-    if (args[1] == NULL) {
-        print_invalid_usage();
-        return;
-    }
-    
+    if (args[1] == NULL) { print_too_few_arguments(); return; }
     if (strcmp(args[1], "--help") == 0) { help_close(); return; }
 
-    int fd = atoi(args[1]);
-
-    if (close(fd) == -1) {
-        perror("Imposible to close descriptor'");
-        return;
-    }
+    ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
+    if (close(fd) == -1) { perror("Imposible to close descriptor'"); return; }
 
     deleteAtPosF(&ShellState->OFList,
     	findItemF(ShellState->OFList, fd)); // No need to check if file descriptor exists as of thanks to beforehand close syscall
@@ -318,29 +302,13 @@ void cmd_close(char *args[], tShellState *ShellState) {
 
 
 void cmd_dup(char *args[], tShellState *ShellState) {
-
-    if (args[1] == NULL) {
-        print_invalid_usage();
-        return;
-    }    
-
+    if (args[1] == NULL) { print_too_few_arguments(); return; }    
 	if (strcmp(args[1], "--help") == 0) { help_dup(); return; }
 
-    int oldfd, newfd;
-    if (strcmp(args[1],"0")==0) {
-        oldfd=0;
-    } else {
-        oldfd=atoi(args[1]);
-        if (oldfd==0) {
-            printf("Can't dup fd %d\n",oldfd);
-            return;
-        }
-    }
+    int newfd, oldfd = strtol(args[1], NULL, 10);
     newfd = dup(oldfd);
-    if (newfd == -1) {
-        perror("Imposible to make dup of descriptor");
-        return;
-    }
+    
+    if (newfd == -1) { perror("Imposible to make dup of descriptor"); return; }
 
     tPosF pos = findItemF(ShellState->OFList, oldfd);
     tOFilesItem oldItem = getItemF(ShellState->OFList, pos);
@@ -588,46 +556,27 @@ void cmd_delrec(char *args[], tShellState *ShellState) {
 
 
 void cmd_lseek(char *args[], tShellState *ShellState) {
-
     if (args[1] == NULL) { print_invalid_usage(); return; }
+    if (strcmp(args[1], "--help") == 0) { help_lseek(); return; }
+	if (args[2] == NULL || args[3] == NULL) { print_too_few_arguments(); return; }
     
-    if (strcmp(args[1], "--help") == 0) { help_memfill(); return; }
+    ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
+    if (fd < 0) { print_invalid_args(args[1]); return; }
     
-	if (args[2] == NULL || args[3] == NULL) { print_invalid_usage(); return; }
-    
-    if (args[1][0] == '-') { if (strcmp(args[1],"--help") == 0) { help_lseek(); } }
-    
-    //Converts the first argument to an integer
-    int fd = atoi(args[1]);
-    if (fd == 0 && strcmp(args[1], "0") != 0) {
-        printf("Invalid file descriptor: %s\n", args[1]);
-        return;
-    }
-    
-    //Converts the second argument to a long
-    long off = atol(args[2]);
-    int when;   //Used like a reference point
+    long off = strtol(args[2], NULL, 10);
+    int where;   // Used like a reference point
 
-    if (strcmp(args[3], "SEEK_SET") == 0) when = SEEK_SET;    //Offset from the beginning of the file
-    else if (strcmp(args[3], "SEEK_CUR") == 0) when = SEEK_CUR;   //Offset from the current file position 
-    else if (strcmp(args[3], "SEEK_END") == 0) when = SEEK_END;   // Offset from the end of the file
-    else {
-        printf("Invalid reference. Use 'lseek --help' for more info\n");
-        return;
-    }
+    if (strcmp(args[3], "SEEK_SET") == 0) where = SEEK_SET;    //Offset from the beginning of the file
+    else if (strcmp(args[3], "SEEK_CUR") == 0) where = SEEK_CUR;   //Offset from the current file position 
+    else if (strcmp(args[3], "SEEK_END") == 0) where = SEEK_END;   // Offset from the end of the file
+    else { print_invalid_args(args[3]); return; }
     
     tPosF pos = findItemF(ShellState->OFList, fd);
-    if (pos == LNULL) {
-        printf("Descriptor %d not found in open files list\n", fd);
-        return;
-    }
+    if (pos == LNULL) { printf("Descriptor %d not found in open files list\n", fd); return; }
     
     //Perform the seek operation on the file descriptor
-    off_t new_offset = lseek(fd, off, when);
-    if (new_offset == (off_t)-1) {
-        perror("Error setting offset");
-        return;
-    }
+    off_t new_offset = lseek(fd, off, where);
+    if (new_offset == (off_t)-1) { perror("Error setting offset"); return; }
 
     printf("New offset for descriptor %d is %ld\n", fd, (long)new_offset);
 
@@ -635,18 +584,12 @@ void cmd_lseek(char *args[], tShellState *ShellState) {
 
 
 void cmd_writestr(char *args[], tShellState *ShellState) {
-    if (args[1] == NULL || args[2] == NULL) {    	
-		print_invalid_usage();
-        return;
-    }
-        	
+    if (args[1] == NULL) { print_invalid_usage(); return; }
 	if (strcmp(args[1], "--help") == 0) { help_writestr(); return; }
-	
-    int fd = atoi(args[1]);
-    if (fd <= 0 && strcmp(args[1], "0") != 0) {
-        printf("Invalid descriptor: %s\n", args[1]);
-        return;
-    }
+	if (args[2] == NULL) print_too_few_arguments(); return; }
+		
+    ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
+    if (fd < 0) { print_invalid_args(args[1]); return; }
 
     //Initialization off an empty buffer
     char str[MAX_INPUT] = "";
@@ -658,14 +601,9 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
     }
     
     size_t len = strlen(str);
-    ssize_t written = write(fd, str, len);    //Returns the number of bytes successfully written (or -1 if errors)
+    ssize_t written = write(fd, str, len);    //Returns the number of bytes successfully written (or -1 if error)
     
-    if (written == -1) {
-        perror("writestr");
-    	printf("Could not write %ld bytes in descriptor %d\n",len,fd);
-        return;
-    }
-    
+    if (written == -1) { perror("writestr"); return;}
     printf("Written at descriptor %d: %s\n", fd, str);
 }
 
@@ -829,6 +767,8 @@ void cmd_free(char *args[], tShellState *ShellState) {
     void *p = stringToPointer(args[1]);
 
     tPosM pos = findItemM(ShellState->MemList, p);
+    if (pos == LNULL) { print_invalid_args(args[1]); return; }
+    
     tItemM block = getItemM(ShellState->MemList, pos);
     
     if (block.alloc_mode == MEM_MALLOC) {
@@ -845,14 +785,14 @@ void cmd_free(char *args[], tShellState *ShellState) {
 void cmd_memfill(char *args[], tShellState *ShellState) {
     if (!args[1]) { print_invalid_usage(); return; }
     if (strcmp(args[1], "--help") == 0) { help_memfill(); return; }
-    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+    if(!args[2] || !args[3]) { print_too_few_arguments(); return; }
     
     
     void *addr = stringToPointer(args[1]);
     if (!addr) { perror("Invalid pointer"); return; }
     
-    size_t cont = (size_t)atoll(args[2]);
-    if (cont == 0) { print_invalid_usage(); return; }
+    ssize_t cont = (ssize_t)strtol(args[2], NULL, 10);
+    if (cont <= 0) { print_invalid_args(args[2]); return; }
     
     unsigned char ch = (unsigned char)args[3][0];
     
@@ -865,17 +805,14 @@ void cmd_memdump(char *args[], tShellState *ShellState) {
 
     if (!args[1]) { print_invalid_usage(); return; }
     if (strcmp(args[1], "--help") == 0) { help_memdump(); return; }
-    if(!args[2]) { print_invalid_usage(); return; }
+    if(!args[2]) { print_too_few_arguments(); return; }
     
     void *addr = stringToPointer(args[1]);
     if (!addr) { perror("Invalid pointer"); return; }
     
     
-    size_t cont = (size_t) strtoul(args[2], NULL, 10);
-    if (cont == 0) {
-        printf("Must indicate a positive number of bytes to dump\n");
-        return;
-    }
+    ssize_t cont = (ssize_t)strtoul(args[2], NULL, 10);
+    if (cont <= 0) { print_invalid_args(args[2]); return; }
     
     unsigned char *paddr = (unsigned char *)addr; // Convert so we can iterate
 
@@ -910,7 +847,7 @@ void cmd_memdump(char *args[], tShellState *ShellState) {
 
 
 void cmd_readfile(char *args[], tShellState* ShellState) {
-    if (args[1] == NULL) { print_invalid_usage(); return;}
+    if (args[1] == NULL) { print_too_few_arguments(); return;}
     if (strcmp(args[1], "--help") == 0) { help_readfile(); return; }
 
     void *p = stringToPointer(args[2]);
@@ -918,8 +855,8 @@ void cmd_readfile(char *args[], tShellState* ShellState) {
     
     if (!findItemM(ShellState->MemList, p)) { printf("Invalid address\n"); return; }
     	
-	size_t cont = -1;
-	if (args[2] != NULL) cont = (size_t) atoll(args[2]);
+	ssize_t cont = -1;
+	if (args[2] != NULL) cont = (ssize_t)strtol(args[2], NULL, 10);
 
     ssize_t bytes_read = readFile(args[1], p, cont);
     if (bytes_read == -1)
@@ -929,21 +866,15 @@ void cmd_readfile(char *args[], tShellState* ShellState) {
 }
 
 void cmd_writefile(char* args[], tShellState* ShellState) {
-    if (!args[1]) { print_invalid_usage(); return; }
+    if (!args[1]) { print_too_few_arguments(); return; }
     if (strcmp(args[1], "--help") == 0) { help_writefile(); return; }
-    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+    if(!args[2] || !args[3]) { print_too_few_arguments(); return; }
 
     void *p = stringToPointer(args[2]);
-    if (p == NULL) {
-        perror("Invalid pointer\n");
-        return;
-    }
+    if (p == NULL) { perror("Invalid pointer\n"); return;}
 
-    size_t cont = (size_t)atoll(args[2]);
-    if (cont == 0) {
-    	print_invalid_usage();
-        return;
-    }
+    ssize_t cont = (ssize_t)strtol(args[2], NULL, 10);
+    if (cont <= 0) { print_invalid_args(args[2]); return; }
     
     ssize_t bytes_write = writeFile(args[0], p, cont);
     if (bytes_write == -1)
@@ -953,29 +884,21 @@ void cmd_writefile(char* args[], tShellState* ShellState) {
 }
 
 void cmd_read(char* args[], tShellState* ShellState) {
-    if (!args[1]) { print_invalid_usage(); return; }
+    if (!args[1]) { print_too_few_arguments(); return; }
     if (strcmp(args[1], "--help") == 0) { help_read(); return; }
-    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+    if(!args[2] || !args[3]) { print_too_few_arguments(); return; }
 
     int fd = strtol(args[1], NULL, 10);
-    if (!findItemF(ShellState->OFList, fd)) { printf("Invalid descriptor\n"); return; }
+    tPosF pos = findItemF(ShellState->OFList, fd);
+    if (pos == LNULL) { printf("Descriptor %d is not in the open files list\n", fd); return; }
     
     void *p = stringToPointer(args[2]);
     if (!p) { perror("Invalid pointer"); return; }
     
-    if (!findItemM(ShellState->MemList, p)) { printf("Invalid address\n"); return; }
+    if (!findItemM(ShellState->MemList, p)) { print_invalid_args(args[1]); return; }
     
-    size_t cont = (size_t)atoll(args[3]);
-    if (cont == 0) {
-		print_invalid_usage();
-        return;
-    }
-
-    tPosF pos = findItemF(ShellState->OFList, fd);        //Check if it is open
-    if (pos == LNULL) {
-        printf("Descriptor %d is not in the open files list\n", fd);
-        return;
-    }
+    ssize_t cont = (ssize_t)strtol(args[3], NULL, 10);
+    if (cont <= 0) { print_invalid_args(args[3]); return; }
 
     ssize_t bytes_read = read(fd, p, cont);
     if (bytes_read == -1) { perror("Error reading file"); return; }
@@ -984,50 +907,34 @@ void cmd_read(char* args[], tShellState* ShellState) {
 }
 
 void cmd_write(char* args[], tShellState* ShellState) {
-    if (!args[1]) { print_invalid_usage(); return; }
+    if (!args[1]) { print_too_few_arguments(); return; }
     if (strcmp(args[1], "--help") == 0) { help_write(); return; }
-    if(!args[2] || !args[3]) { print_invalid_usage(); return; }
+    if(!args[2] || !args[3]) { print_too_few_arguments(); return; }
     
-    int fd = atoi(args[1]);
-    if (fd == 0 && strcmp(args[1], "0") != 0) {
-        printf("Invalid descriptor: %s\n", args[1]);
-        return;
-    }
+    ssize_t fd = (ssize_t)strtol(args[3], NULL, 10);
+    if (fd < 0) { print_invalid_args(args[1]); return; }
+    tPosF pos = findItemF(ShellState->OFList, fd);
+    if (pos == LNULL) { printf("Descriptor %ld is not in the open files list\n", fd); return; }
     
     void *p = stringToPointer(args[2]);
-    if (!p) { perror("Invalid pointer\n"); return; }
+    if (!p) { perror("Invalid pointer"); return; }
     
-    size_t cont = (size_t)atoll(args[3]);
-    if (cont == 0) {
-        printf("Must indicate the number of bytes to write\n");
-        return;
-    }
-
-    tPosF pos = findItemF(ShellState->OFList, fd); //Check if it is open
-    if (pos == LNULL) { printf("Descriptor %d is not in the open files list\n", fd); return; }
+    ssize_t cont = (ssize_t)strtol(args[3], NULL, 10);
+    if (cont <= 0) { print_invalid_args(args[3]); return; }
 
     ssize_t bytes_write = write(fd, p, cont);
-    if (bytes_write == -1) {
-        perror("Error writting file");
-        return;
-    }
+    if (bytes_write == -1) { perror("Error writting file"); return; }
 
-    printf("Write %zd bytes from descriptor %d into address %p\n", bytes_write, fd, p);
+    printf("Write %zd bytes from descriptor %ld into address %p\n", bytes_write, fd, p);
 }
 
 void cmd_recurse(char *args[], tShellState *ShellState) {
-    if (!args[1]) {
-			print_invalid_usage();
-        return;
-    }
+    if (!args[1]) { print_too_few_arguments(); return; }
     
-    if (strcmp(args[1], "--help") == 0) {help_recurse(); return;}
+    if (strcmp(args[1], "--help") == 0) { help_recurse(); return; }
     
-    int n = atoi(args[1]);
-    if (n <= 0) {
-        printf("Error: n must be > 0\n");
-        return;
-    }
+    ssize_t n = strtol(args[1], NULL, 10);
+    if (n <= 0) { print_invalid_args(args[1]); return; }
 
     recursive(n);
 }
@@ -1046,14 +953,16 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 	key_t key;
 	
 	if (strcmp(args[1], "-create") == 0) {
+	
+		if (args[2]==NULL || args[3]==NULL) { print_too_few_arguments(); return; }
 
-		size_t size;
+		ssize_t size;
 		void *p;
 		
 	   	key = (key_t) strtoul(args[2], NULL, 10);
-		size =(size_t) strtoul(args[3], NULL, 10);
+		size = (ssize_t) strtoul(args[3], NULL, 10);
 		
-		if (size<=0) { printf ("Can't allocate blocks of 0 bytes'\n"); return; }
+		if (size<=0) { print_invalid_args(args[3]); return; }
 		
 		if ((p = obtainMemoryShmget(&ShellState->MemList, key, size)) != NULL) {
 			printf ("Allocated %lu bytes in %p\n",(unsigned long) size, p);
@@ -1352,7 +1261,7 @@ void help_shared() {
     	"\t\tSIZE - SIZE of block created\n"
     	"\t-free\tDetaches block of shared memory of key KEY (previously allocated) and deletes it from memory blocks list.\n"
     	"\t-delkey\tRemoves block of shared memory of key KEY from system. The shared memory stays attached to the key.\n"
-    	"\tno OPTIONS nor KEY lists shared memory blocks allocated and their respective keys.\n "
+    	"\tno OPTIONS nor KEY lists shared memory blocks allocated and their respective keys.\n"
     	);
 }
 

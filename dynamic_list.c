@@ -86,7 +86,7 @@ void printLastNH (tListH L, int n) {
     tPosH pos = L;
     while (pos != LNULL) {
         if (index >= start) {
-            printf("%d -> %s\n", pos->data.id, pos->data.cmd);
+            printf("%ld -> %s\n", pos->data.id, pos->data.input);
         }
         pos = pos->next;
         index++;
