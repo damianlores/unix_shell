@@ -683,7 +683,7 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
 
 	// Case no args passed -> Print list of allocated blocks
     if (args[1] == NULL) {
-    	printf("****** List of malloc blocks assigned to process %d:\n", getpid());
+    	printf("****** List of malloc blocks assigned to process %d\n", getpid());
         printListMallocM(ShellState->MemList);
         return;
     }
@@ -1035,7 +1035,12 @@ void cmd_recurse(char *args[], tShellState *ShellState) {
 void cmd_shared(char *args[], tShellState *ShellState) {
 	// Using code from help code
 	// No args -> print shared memory blocks list
-	if (args[1]==NULL) { printListSharedM(ShellState->MemList); return; }
+	if (args[1]==NULL) { 
+		printf("****** List of shared blocks assigned to process %d\n", getpid());
+		printListSharedM(ShellState->MemList);
+		return;
+	}
+	
 	if (strcmp(args[1], "--help") == 0) { help_shared(); return; }
 	
 	key_t key;
