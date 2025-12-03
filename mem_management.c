@@ -212,8 +212,6 @@ void freeBlocks(tListM *memList) {
 	}
 }
 
-
-
 void do_deleteKeyShared (key_t key) {
     int id;
 	if (key == IPC_PRIVATE) {
@@ -227,7 +225,6 @@ void do_deleteKeyShared (key_t key) {
     if (shmctl(id, IPC_RMID, NULL) == -1)
 		perror ("shmctl: Impossible to delete shared memory");
 }
-
 
 void recursive(int n) {
 	char automatic[SIZE];

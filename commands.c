@@ -964,15 +964,15 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 		if (args[2] == NULL) { print_invalid_usage(); return;
 		} else {
 			key = strtoul(args[2], NULL, 10);
-			tPosM pos = findSharedItemM(ShellState->MemList,key); // Retrieves position in list out of shared mem key
+			tPosM pos = findSharedItemM(ShellState->MemList, key); // Retrieves position in list out of shared mem key
     		if (pos == LNULL) { printf ("No shared memory block of such key is mapped\n"); return; }
         	freeShared(&ShellState->MemList, pos);
-        	do_deleteKeyShared(key);
 		}
 	} else if (strcmp(args[1], "-delkey") == 0) {
-		if (args[2] != NULL) { 	do_deleteKeyShared(strtoul(args[2], NULL, 10)); return; }
-		else { print_invalid_usage(); return; }
-	} else doSharedAttach(args, &ShellState->MemList);
+		if (args[2] == NULL) { print_invalid_usage(); return; }
+		else { do_deleteKeyShared(strtoul(args[2], NULL, 10)); return; }
+	} else 
+		doSharedAttach(args, &ShellState->MemList);
 }
 
 
