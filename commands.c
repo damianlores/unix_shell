@@ -215,7 +215,7 @@ void cmd_historic(char *args[], tShellState *ShellState) {
     
     else if (strcmp(args[1], "--help") == 0) { help_historic(); return; }
     
-    else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %d\n",countH(ShellState->HistoricList));
+    else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %ld\n", countH(ShellState->HistoricList));
     
     else if (strcmp(args[1],"-clear")==0) clearListH(&ShellState->HistoricList);
     
@@ -238,19 +238,6 @@ void cmd_historic(char *args[], tShellState *ShellState) {
     }
 }
 
-
-
-int mode_to_flags(char *args) {
-    if (strcmp(args, "ro") == 0) return O_RDONLY;
-    if (strcmp(args, "rw") == 0) return O_RDWR | O_CREAT;
-    if (strcmp(args, "wo") == 0) return O_WRONLY | O_CREAT;
-    if (strcmp(args, "cr") == 0) return O_RDWR | O_CREAT;
-    if (strcmp(args, "ap") == 0) return O_WRONLY | O_APPEND | O_CREAT;
-    if (strcmp(args, "ex") == 0) return O_WRONLY | O_EXCL | O_CREAT;
-    if (strcmp(args, "tr") == 0) return O_WRONLY | O_TRUNC | O_CREAT;
-    return -1; // invalid mode
-}
-
 void cmd_open(char *args[], tShellState* ShellState) {
 	// no args given -> list of open files
     if (args[1] == NULL) {
@@ -262,31 +249,24 @@ void cmd_open(char *args[], tShellState* ShellState) {
         printf("Error. Usage: open <file> <mode>\n");
         return;
     }
-    short int flags = mode_to_flags(args[2]);
+    int mode = 0;
+    modes_to_flags(args+2, &mode);
 	// error if input matches no flag
-    if (flags == -1) {
-        printf("Invalid mode: %s\n", args[2]);
-        return;
-    }
-    // open returns descriptor of the file 
-    int fd = open(args[1], flags, 0644);
-	// args[1] -> char* with name of file
-	// flags -> constant with open flags
-	// 0664 -> file permissions (owner R/W , group R , others R)
-    if (fd == -1) {
-        perror("Imposible to open file");
-        return;
-    }
+    int fd = open(args[1], mode, 0777);
+    if (fd == -1) { perror("Imposible to open file"); return; 	}
 
     tOFilesItem item;
     item.fd = fd;
     item.dup_of=-1;
-    strcpy(item.name, args[1]);
-    strcpy(item.mode, args[2]);
+    snprintf(item.name, PATH_MAX, "%s", args[1]);
+    flags_to_str_arr(mode, item.mode);
     
     if (insertItemF(&ShellState->OFList, item))
         printf("Added entry %d to open files list\n",fd);
-    else printf("Error: couldn't open file\n");
+    else {
+    	printf("Error: couldn't insert open file in list\n");
+    	close(fd);
+    }
 }
 
 void cmd_close(char *args[], tShellState *ShellState) {
@@ -317,7 +297,7 @@ void cmd_dup(char *args[], tShellState *ShellState) {
     newItem.fd = newfd;
     newItem.dup_of = oldfd;
     strcpy(newItem.name, oldItem.name);
-    strcpy(newItem.mode, oldItem.mode);
+    copy_open_file_flags(newItem.mode, oldItem.mode);
 
     if (!insertItemF(&ShellState->OFList, newItem)) {
         printf("Error: could not insert duplicated fd into list\n");
@@ -336,26 +316,9 @@ void cmd_infosys(char *args[], tShellState *ShellState) {
 }
 
 void cmd_listopen(char *args[], tShellState *ShellState) {
-
 	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_listopen(); return; }
 	
-    tPosF pos = firstF(ShellState->OFList);
-    while (pos!=LNULL) {
-        tOFilesItem item = getItemF(ShellState->OFList, pos);
-        if (item.dup_of==-1) {
-            printf("descriptor: %d , %s  %s\n",
-            item.fd,
-            item.name,
-            item.mode);
-        } else {
-            printf("descriptor: %d , duplicate of %d (%s) %s\n",
-                   item.fd,
-                   item.dup_of,
-                   item.name,
-                   item.mode);
-        }
-        pos = nextF(ShellState->OFList, pos);
-    }
+    printListF(ShellState->OFList);
 }
 
 
@@ -574,10 +537,9 @@ void cmd_lseek(char *args[], tShellState *ShellState) {
     tPosF pos = findItemF(ShellState->OFList, fd);
     if (pos == LNULL) { printf("Descriptor %ld not found in open files list\n", fd); return; }
     
-    //Perform the seek operation on the file descriptor
+    // Perform the seek operation on the file descriptor
     off_t new_offset = lseek(fd, off, where);
-    if (new_offset == (off_t)-1) { perror("Error setting offset"); return; }
-
+    if (new_offset == (off_t)-1) { perror("Error setting offset"); return; } // (off_t)-1 is the value returned by lseek on error
     printf("New offset for descriptor %ld is %ld\n", fd, (long)new_offset);
 
 }
@@ -587,7 +549,7 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
     if (args[1] == NULL) { print_invalid_usage(); return; }
 	if (strcmp(args[1], "--help") == 0) { help_writestr(); return; }
 	if (args[2] == NULL) { print_too_few_arguments(); return; }
-		
+	
     ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
     if (fd < 0) { print_invalid_args(args[1]); return; }
 
@@ -596,13 +558,11 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
 	
     for (int i = 2; args[i] != NULL; i++) {
         strcat(str, args[i]);
-        if (args[i + 1] != NULL)    //Add space between words
+        if (args[i + 1] != NULL)    // Add space between words
             strcat(str, " ");
     }
-    
-    size_t len = strlen(str);
-    ssize_t written = write(fd, str, len);    //Returns the number of bytes successfully written (or -1 if error)
-    
+    ssize_t len = strlen(str);
+    ssize_t written = write(fd, str, len);	// Returns the number of bytes successfully written (or -1 if error)
     if (written == -1) { perror("writestr"); return;}
     printf("Written at descriptor %ld: %s\n", fd, str);
 }
@@ -618,8 +578,7 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
 
 
 void cmd_malloc(char *args[], tShellState *ShellState) {
-
-	// Case no args passed -> Print list of allocated blocks
+	// No args passed -> Print list of allocated blocks
     if (args[1] == NULL) {
     	printf("****** List of malloc blocks assigned to process %d\n", getpid());
         printListMallocM(ShellState->MemList);
@@ -628,16 +587,18 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
 	if (strcmp(args[1], "--help") == 0) { help_malloc(); return; }
 
     if (strcmp(args[1], "-free") == 0) {
+    	// malloc -free needs block size argument:
 		if (args[2] == NULL) { print_too_few_arguments(); return; }
-
+		
 		ssize_t n = (ssize_t)strtol(args[2], NULL, 10);
-		if (errno == ERANGE || errno == EINVAL) { perror(args[2]); return; }
-
+		if (errno == ERANGE) { perror(args[2]); return; } 	/* If overflow occurs, strtol returns  LONG_MAX,
+															so we make use of errno number to stop function */
 		tPosM pos = findMallocItemM(ShellState->MemList, n);
 		if (pos == LNULL) { printf("Block of size %ld not found.\n",n); return; }
-		tItemM item = getItemM(ShellState->MemList, pos);
 		
+		tItemM item = getItemM(ShellState->MemList, pos);
 		freeMalloc(&ShellState->MemList, pos);
+		
 		printf("Freed block of size %ld at address %p\n", n, item.addr);
 		return;
     }
@@ -666,66 +627,50 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
 }
 
 void cmd_mmap(char *args[], tShellState *ShellState) {
-	
+	// No args shows list of mapped files
     if (args[1] == NULL) {
 		printf("****** List of malloc blocks assigned to process %d:\n", getpid());
     	printListMMapM(ShellState->MemList); 
     	return;
-    }
-        	
+    }   	
     if (strcmp(args[1], "--help") == 0) { help_mmap(); return; }
     
     if (strcmp(args[1], "-free") == 0) {
-        if (args[2] == NULL) {    	
-			print_invalid_usage();
-            return;
-        }
-            
-        char *filename = args[2];
+    	// Command called with -free needs filename to unmmap
+        if (args[2] == NULL) { print_too_few_arguments(); return; }
         
+        char *filename = args[2];
         tPosM pos = findMMapItemM(ShellState->MemList, filename);
-        if (pos != LNULL) {
-        	freeMMap(&ShellState->MemList, pos);
-        	return;
-        }
+        // If file is mapped and -free was set, call aux unmapping function
+        if (pos != LNULL) { 
+        	freeMMap(&ShellState->MemList, pos); 
+        	return; 
+    	}
         printf("Error: file %s was not mapped\n", filename);
         return;
     }
-    
-    if (args[2] == NULL) {
-		print_invalid_usage();
-        return;
-    }
+    // No permissions given? Return:
+    if (args[2] == NULL) { print_too_few_arguments(); return; }
+    // File is mapped, args are present -> call mapping aux function:
     do_mmap(args, &ShellState->OFList, &ShellState->MemList);
 }
 
 void cmd_mem(char *args[], tShellState *ShellState) {
     int l1, l2, l3;
-    
     static int si1 = 11, si2 = 22, si3 = 33;
     static int sni1, sni2, sni3;
-    
-    bool vars = false, blocks = false, funcs = false;
 
     if (args[1] == NULL) { print_invalid_usage(); return; }
-    
     if (strcmp(args[1], "--help") == 0) { help_mem(); return; }
     
-    if (strcmp(args[1], "-funcs") == 0)
-    	funcs = true;
-    else if (strcmp(args[1], "-vars") == 0)
-    	vars = true;
-    else if (strcmp(args[1], "-blocks") == 0)
-    	blocks = true;
-    else if (strcmp(args[1], "-all") == 0)
-    	funcs = vars = blocks = true;
-    else if (args[1] && strcmp(args[1], "-pmap") == 0) {
-        do_pmap();
-        return;
-    } else {
-    	print_invalid_usage();
-    	return;
-    }
+    bool vars = false, blocks = false, funcs = false;
+        
+    if (strcmp(args[1], "-funcs") == 0) funcs = true;
+    else if (strcmp(args[1], "-vars") == 0) vars = true;
+    else if (strcmp(args[1], "-blocks") == 0) blocks = true;
+    else if (strcmp(args[1], "-all") == 0) funcs = vars = blocks = true;
+    else if (args[1] && strcmp(args[1], "-pmap") == 0) { do_pmap(); return; } 
+    else { print_invalid_usage(); return; }
     
     if (funcs) {
     	printf("Program functions   %p    %p    %p\n", cmd_malloc, cmd_read, cmd_write);
@@ -747,13 +692,10 @@ void cmd_mem(char *args[], tShellState *ShellState) {
 }
 
 void cmd_free(char *args[], tShellState *ShellState) {
-
 	if (args[1] == NULL) { print_invalid_usage(); return; }
-	
 	if (strcmp(args[1], "--help") == 0) { help_free(); return; }
     
     void *p = stringToPointer(args[1]);
-
     tPosM pos = findItemM(ShellState->MemList, p);
     if (pos == LNULL) { print_invalid_args(args[1]); return; }
     
@@ -775,7 +717,6 @@ void cmd_memfill(char *args[], tShellState *ShellState) {
     if (strcmp(args[1], "--help") == 0) { help_memfill(); return; }
     if(!args[2] || !args[3]) { print_too_few_arguments(); return; }
     
-    
     void *addr = stringToPointer(args[1]);
     if (!addr) { perror("Invalid pointer"); return; }
     
@@ -785,19 +726,16 @@ void cmd_memfill(char *args[], tShellState *ShellState) {
     unsigned char ch = (unsigned char)args[3][0];
     
     fillMem(addr, cont, ch);
-    printf("Filled %zu bytes at %p with character '%c'\n", cont, addr, ch);
-    
+    printf("Filled %zu bytes at %p with character '%c'\n", cont, addr, ch);   
 }
 
 void cmd_memdump(char *args[], tShellState *ShellState) {
-
     if (!args[1]) { print_invalid_usage(); return; }
     if (strcmp(args[1], "--help") == 0) { help_memdump(); return; }
     if(!args[2]) { print_too_few_arguments(); return; }
     
     void *addr = stringToPointer(args[1]);
     if (!addr) { perror("Invalid pointer"); return; }
-    
     
     ssize_t cont = (ssize_t)strtoul(args[2], NULL, 10);
     if (cont <= 0) { print_invalid_args(args[2]); return; }
@@ -830,9 +768,6 @@ void cmd_memdump(char *args[], tShellState *ShellState) {
         printf("\n");
     }
 }
-
-
-
 
 void cmd_readfile(char *args[], tShellState* ShellState) {
     if (args[1] == NULL) { print_too_few_arguments(); return;}
@@ -1093,7 +1028,7 @@ void help_historic() {
 void help_open() {
     printf("\nopen - Opens file and adds it to open files list.\n"
         "\n'open [PATH] [MODE]'\n"
-        "\tMODE - Opening mode"
+        "\tMODE - Opening mode\n"
         "\t\tcr: O_CREAT\t ap: O_APPEND\n"
         "\t\tex: O_EXCL\t ro: O_RDONLY\n"
         "\t\trw: O_RDWR\t wo: O_WRONLY\n"
@@ -1238,7 +1173,7 @@ void help_mmap() {
     	"\t-free\tunmaps file PATH.\n"
     	"\tno option normally maps the file PATH.\n"
     	"\tPERM - permissions to map the file with.\n"
-        "\tr|w|x\t Read and/or write and/or execute permission.\n");
+        "\t\tr|w|x\t Read and/or write and/or execute permission.\n");
 }
 
 void help_shared() {

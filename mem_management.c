@@ -1,5 +1,6 @@
 #include "types.h"
 #include "dynamic_list.h"
+#include "file_system.h"
 
 
 #include <stdio.h>
@@ -106,14 +107,14 @@ void doSharedAttach(char *args[], tListM *memList) {
 
 
 
-void *mapFile(char *file, int protection, tListF *OFList, tListM *memList) {
+void *mapFile(char *filename, int protection, tListF *OFList, tListM *memList) {
     int fd, map = MAP_PRIVATE, mode = O_RDONLY;
     struct stat st;
     void *p;
 
     if (protection & PROT_WRITE)
     	mode = O_RDWR;
-    if (stat(file, &st) == -1 || (fd = open(file, mode)) == -1)
+    if (stat(filename, &st) == -1 || (fd = open(filename, mode)) == -1)
         return NULL;
     if ((p = mmap(NULL, st.st_size, protection, map, fd, 0)) == MAP_FAILED)
         return NULL;
@@ -121,11 +122,9 @@ void *mapFile(char *file, int protection, tListF *OFList, tListM *memList) {
     tOFilesItem itemF;
     itemF.fd = fd;
     itemF.dup_of=-1;
-    strcpy(itemF.name, file);
-    if (mode |= O_RDWR)
-    	strcpy(itemF.mode, "rw");
-    else 
-    	strcpy(itemF.mode, "ro");
+    snprintf(itemF.name, (7+PATH_MAX), "%s%s", "Map of ", filename);
+    flags_to_str_arr(mode, itemF.mode);
+    
     insertItemF(OFList, itemF);
     
 	time_t raw_time = time(NULL);
@@ -140,7 +139,7 @@ void *mapFile(char *file, int protection, tListF *OFList, tListM *memList) {
     strcpy(item.time, time_buffer);
     item.alloc_mode = MEM_MMAP;
     item.fd = fd;
-    strcpy(item.file, file);
+    snprintf(item.file, (PATH_MAX), "%s", filename);
     
     insertItemM(memList, item);
 /* Guardar en la lista    InsertarNodoMmap (&L,p, s.st_size,df,fichero); */
@@ -148,18 +147,12 @@ void *mapFile(char *file, int protection, tListF *OFList, tListM *memList) {
     return p;
 }
 
-
-
 void do_mmap(char *args[], tListF *OFList, tListM *memList) { 
     char *perm;
 	void *p;
     int protection=0;
-     
-	if (args[0] == NULL) {
-    	printListMMapM(*memList); 
-    	return;
-    }
-    if ((perm = args[1]) != NULL && strlen(perm) < 4) {
+	
+    if ((perm = args[2]) != NULL && strlen(perm) < 4) {
     	if (strchr(perm,'r')!=NULL) protection|=PROT_READ;
 		if (strchr(perm,'w')!=NULL) protection|=PROT_WRITE;
 		if (strchr(perm,'x')!=NULL) protection|=PROT_EXEC;
@@ -296,7 +289,7 @@ void do_pmap (void) {
     sprintf (elpid, "%d", (int)getpid());
    
     if ((pid = fork()) == -1){
-    	perror ("Imposible crear proceso");
+    	perror ("Imposible to create process");
       	return;
 	}
     if (pid==0){

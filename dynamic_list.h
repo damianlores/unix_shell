@@ -23,14 +23,10 @@ void createEmptyListH (tListH *L);
 void clearListH (tListH *L);
 bool insertItemH (tListH *L, tHistoricItem item);
 void printLastNH(tListH L,int n);
-unsigned int countH(tListH L);
+size_t countH(tListH L);
 tPosH findItemH (tListH L, int id);
 tPosH firstH(tListH L);
 tHistoricItem getItemH (tListH L,tPosH pos);
-
-
-
-
 
 typedef struct tNodeF *tPosF;
 
@@ -48,6 +44,7 @@ bool insertItemF (tListF *L, tOFilesItem item);
 void deleteAtPosF (tListF *L, tPosF pos);
 tPosF findItemF (tListF L, int fd);
 tOFilesItem getItemF (tListF L, tPosF pos);
+void printListF(tListF L);
 tPosF firstF(tListF L);
 tPosF nextF (tListF L, tPosF pos);
 

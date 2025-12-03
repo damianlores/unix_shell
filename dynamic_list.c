@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "types.h"
 #include "dynamic_list.h"
@@ -13,15 +14,12 @@ bool createNodeH(tPosH *pos) {
     *pos = malloc(sizeof(tNodeH));
     return (*pos != LNULL);
 }
-
 void createEmptyListH(tListH *L) {
     *L = LNULL;
 }
-
 bool isEmptyList(tListH L) {
     return (L == LNULL);
 }
-
 void clearListH (tListH *L) {
     tPosH temp;
     while (*L != LNULL) {
@@ -30,21 +28,16 @@ void clearListH (tListH *L) {
         free(temp);
     }
 }
-
 bool insertItemH (tListH *L, tHistoricItem item) {
-
     // Only 2 cases, in which one of them is a specific case of the other:
     //      1: Insert item at the end.
     //      2: Insert item with empty list.
-
     tPosH temp,i;
-
     if (!createNodeH(&temp))
         return false;
 
     temp -> data = item;
     temp -> next = LNULL;
-
     if(*L == LNULL) {
         temp -> data.id=0;
         *L = temp;
@@ -57,8 +50,7 @@ bool insertItemH (tListH *L, tHistoricItem item) {
     }
     return true;
 }
-
-unsigned int countH (tListH L) {
+size_t countH (tListH L) {
     tPosH pos=L;
     unsigned int cnt = 0;
     while (pos != LNULL) {
@@ -67,7 +59,6 @@ unsigned int countH (tListH L) {
     }
     return cnt;
 }
-
 /*
 printLastNH: prints last nth elements of the list, e.g.: if the given number n to the function is 5, the last
 5 elements to have entered the list are print. If given number is negative the functions works printing every element
@@ -76,7 +67,6 @@ of the list.
 	PostCD:
 */
 void printLastNH (tListH L, int n) {
-
     if (L == LNULL || n == 0) return;
 
     int total = countH(L);
@@ -92,7 +82,6 @@ void printLastNH (tListH L, int n) {
         index++;
     }
 }
-
 tPosH findItemH (tListH L, int id) {
     tPosH pos=L;
     if (L == LNULL)	return LNULL;
@@ -101,15 +90,12 @@ tPosH findItemH (tListH L, int id) {
     }
     return pos;
 }
-
 tHistoricItem getItemH(tListH L, tPosH pos) {
     return pos -> data;
 }
-
 tPosH firstH(tListH L) {
 	return L;
 }
-
 
 // OPEN FILES LIST IMPLEMENTATION
 
@@ -117,11 +103,9 @@ bool createNodeF(tPosF *pos) {
     *pos = malloc(sizeof(tNodeF));
     return (*pos != LNULL);
 }
-
 void createEmptyListF(tListF *L) {
     *L=LNULL;
 }
-
 void clearListF (tListF *L) {
     tPosF temp;
     while (*L != LNULL) {
@@ -130,17 +114,13 @@ void clearListF (tListF *L) {
         free(temp);
     }
 }
-
 bool insertItemF (tListF *L, tOFilesItem item) {
-
-    tPosF temp;
-
+   tPosF temp;
     if (!createNodeF(&temp))
         return false;
-
+        
     temp -> data = item;
     temp -> next = LNULL;
-
     if (*L == NULL) {
         *L = temp;
     } else {
@@ -161,14 +141,11 @@ bool insertItemF (tListF *L, tOFilesItem item) {
     }
     return true;
 }
-
 void deleteItemF(tListF* L, int fd) {
-
     if (L==LNULL) return;
 
     tPosF current = *L;
     tPosF prev = LNULL;
-
     // Traverse the list looking for the node with fd
     while (current != LNULL) {
         if (current->data.fd == fd) {
@@ -185,13 +162,10 @@ void deleteItemF(tListF* L, int fd) {
     }
     printf("Error: no open file with such fd.\n");
 }
-
 void deleteAtPosF(tListF* L, tPosF pos) {
-
     // PRECD: if (L==LNULL) return;
     tPosF current = *L;
     tPosF prev = LNULL;
-
     while (current != LNULL) {
         if (current == pos) {
             if (prev == LNULL) {
@@ -206,29 +180,42 @@ void deleteAtPosF(tListF* L, tPosF pos) {
         current = current->next;
     }
 }
-
 // PreCD: fd is a valid descriptor of a file
 tPosF findItemF(tListF L, int fd) {
     tPosF pos;
     for (pos = L ; fd != pos->data.fd ; pos = pos -> next);
     return pos;
 }
-
 tOFilesItem getItemF(tListF L, tPosF pos) {
     return pos->data;
 }
-
-tPosF firstF(tListF L) {
-	return L;
+void printListF(tListF L) {
+	tPosF pos = L;
+	tOFilesItem item;
+    while (pos != NULL) {
+    	item = pos->data;
+    	off_t offset = lseek(item.fd, SEEK_CUR, 0);
+    	
+    	printf("descriptor: %d , offset: (", item.fd);
+    	if (offset != (off_t)-1) printf("%ld", offset);
+        if (item.dup_of == -1) {
+            printf(") -> %s",
+            	item.name);
+        } else {
+            printf(") -> duplicate of %d (%s)",
+                   item.dup_of, item.name);
+        }
+        int i = 0;
+        while (item.mode[i] != NULL) {
+        	printf(" %s", item.mode[i]);
+        	i++;
+        }
+        putchar('\n');
+        pos = pos->next;
+    }
 }
-
-tPosF nextF(tListF L, tPosF pos) {
-    return pos -> next;
-}
-
 
 //MEM BLOCKS LIST IMPLEMENTATION
-
 
 bool createNodeM(tPosM *pos) {
     *pos = malloc(sizeof(tNodeM));

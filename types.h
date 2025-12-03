@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-
+#define FLAGS_MAX 7
 #define TIME_BUFFER_MAX 25
 
 
@@ -14,18 +14,15 @@ typedef struct {
     char input[MAX_INPUT];
     size_t id;
 } tHistoricItem;
-
 // ADT of open files list item
 typedef struct {
     int fd;
     int dup_of;
     char name[NAME_MAX];
-    char mode[10];
+    char* mode[FLAGS_MAX];
 } tOFilesItem;
-
 // Definition of constants for mmap function
 typedef enum { MEM_MALLOC, MEM_MMAP, MEM_SHARED } tMemType;
-
 // ADT of memory blocks list item
 typedef struct {
     void *addr;
@@ -49,8 +46,6 @@ typedef struct {
 
 // Definition of constants for recursive format used in dir command
 typedef enum {REC_OFF , REC_BEFORE , REC_AFTER} tRecFormat;
-
-
 
 // Definition of directory info-printing data
 typedef struct {

@@ -2,6 +2,7 @@
  
 #include "shell.h"
 #include "types.h"
+#include "file_system.h"
 
 
 int sliceChain(char* chain, char *slices[])
@@ -52,19 +53,23 @@ void inputProcess(char* input, tShellState* ShellState) {
 }
 
 void inherit_std_descriptors(tListF* OFList) {
-
-    const char *names[] = { "standard input", "standard output", "standard error" };
-
+	const char* std_descriptor_name[3] =
+    	{"standard input", "standard output", "standard error"};
+    	
+	struct stat st;
 	tOFilesItem item;
-
+	char* flags[2];
+		flags[0] = "O_RDWR";
+		flags[1] = NULL;
+		
     for (int fd = 0; fd <= 2; fd++) {
-    	if (fcntl(fd, F_GETFD) != -1) {
-    	    item.fd = fd;
-        	item.dup_of=-1;
-        	strcpy(item.name, names[fd]);
-        	strcpy(item.mode, "rw");
+		if (fstat(fd, &st) == -1) { perror("Couldn't access standard descriptor"); return; };
+		
+    	item.fd = fd;
+        item.dup_of = -1;
+    	strcpy(item.name, std_descriptor_name[fd]);
+    	copy_open_file_flags(item.mode, flags);
         
-        	insertItemF(OFList, item);
-    	}
+        insertItemF(OFList, item);
     }
 }

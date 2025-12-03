@@ -33,8 +33,7 @@ char letterTF(mode_t m)
 /*las siguientes funciones devuelven los permisos de un fichero en formato rwx----*/
 /*a partir del campo st_mode de la estructura stat */
 /*las tres son correctas pero usan distintas estrategias de asignación de memoria*/
-char* mode_to_str(mode_t m, char *permissions)
-{
+char* mode_to_str(mode_t m, char *permissions) {
     strcpy (permissions,"---------- ");
     
     permissions[0]=letterTF(m);
@@ -53,7 +52,38 @@ char* mode_to_str(mode_t m, char *permissions)
     
     return permissions;
 }
-
+void modes_to_flags(char** args, int* mode) {
+	for (int i = 0; args[i] != NULL; i++)
+      if (!strcmp(args[i],"cr")) *mode|=O_CREAT;
+      else if (!strcmp(args[i],"ex")) *mode|=O_EXCL;
+      else if (!strcmp(args[i],"ro")) *mode|=O_RDONLY; 
+      else if (!strcmp(args[i],"wo")) *mode|=O_WRONLY;
+      else if (!strcmp(args[i],"rw")) *mode|=O_RDWR;
+      else if (!strcmp(args[i],"ap")) *mode|=O_APPEND;
+      else if (!strcmp(args[i],"tr")) *mode|=O_TRUNC; 
+      else {
+      	printf("Warning! Invalid entry: %s. Default mode was added: O_RDONLY\n", args[i]);
+      	break;
+      }
+}
+void flags_to_str_arr(int flag, char** modes) {
+	int i = 0;
+    if (flag & O_RDWR) { modes[i] = "O_RDWR"; i++; }
+    if (flag & O_WRONLY) { modes[i] = "O_WRONLY"; i++; }
+    if (flag & O_CREAT) { modes[i] = "O_CREAT"; i++; }
+    if (flag & O_EXCL) { modes[i] = "O_EXCL"; i++; }
+    if (flag & O_TRUNC) { modes[i] = "O_TRUNC"; i++; }
+    if (flag & O_APPEND) { modes[i] = "O_APPEND"; i++; }
+    modes[i] = NULL;
+}
+void copy_open_file_flags(char** dest, char** src) {
+	int i = 0;
+	while(src[i] != NULL) {
+		dest[i] = src[i];
+    	i++;
+	}
+	dest[i] = NULL;
+}
 
 int isDir(char* dir) { // whether dir is a directory or not
 	struct stat s;
