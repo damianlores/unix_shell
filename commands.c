@@ -956,7 +956,7 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 			perror("uid");
 		return; // Return both on success and on error
 	}
-	print_invalid_args();
+	print_invalid_args(args[1]);
 }
 
 
