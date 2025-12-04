@@ -42,6 +42,8 @@ void cmd_writefile(char* args[], tShellState* ShellState);
 void cmd_read(char* args[], tShellState* ShellState);
 void cmd_write(char* args[], tShellState* ShellState);
 void cmd_recurse(char* args[], tShellState* ShellState);
+// P3
+void cmd_uid(char* args[], tShellState* ShellState);
 
 
 // 	HELP FUNCTIONS
@@ -84,5 +86,7 @@ void help_writefile();
 void help_read();
 void help_write();
 void help_recurse();
+//
+void help_uid();
 
 #endif

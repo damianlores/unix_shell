@@ -81,6 +81,8 @@ tCommand commands[] = {
     {"read", cmd_read},
     {"write", cmd_write},
     {"recurse", cmd_recurse},
+    // P3
+    {"uid", cmd_uid},
     {NULL, NULL}
 };
 
@@ -105,6 +107,14 @@ bool cmd_dispatcher(char *args[], tShellState* ShellState) {
     }
     return false;
 }
+
+
+
+
+// ======================== P0 FUNCTION (NON-HELP FUNCTIONS) ========================
+
+
+
 
 void cmd_authors(char *args[], tShellState *ShellState) {
 
@@ -327,7 +337,7 @@ void cmd_exit(char *args[], tShellState *ShellState) {
 
 
 
-/* P1 FUNCTIONS (NON-HELP FUNCTIONS) */
+// ======================== P1 FUNCTIONS (NON-HELP FUNCTIONS) ========================
 
 
 
@@ -566,7 +576,7 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
 
 
 
-/* P2 FUNCTIONS (NON-HELP FUNCTIONS) */
+// ======================== P2 FUNCTIONS (NON-HELP FUNCTIONS) ========================
 
 
 
@@ -905,6 +915,59 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 
 
 
+
+// ======================== P3 FUNCTIONS (NON-HELP FUNCTIONS) ========================
+
+
+
+
+void cmd_uid(char *args[], tShellState *ShellState) {
+	struct passwd* info;
+	uid_t target_uid;
+	// Input is only command or -get -> show real and effective UID
+	if (args[1] == NULL || strcmp(args[1],"-get") == 0) {
+		if ( ( info = getpwuid( getuid() ) ) == NULL) {	// Access real UID info
+			perror("Could not access real UID information");
+			return;
+		}
+		printf("Real credential: %d (%s)\n", info->pw_uid, info->pw_name);
+		
+		if ((info = getpwuid( geteuid() )) == NULL) {	// Access effective UID info
+			perror("Could not access effective UID information");
+			return;
+		}
+		printf("Effective credential: %d (%s)\n", info->pw_uid, info->pw_name);	
+	}
+	if (strcmp(args[1], "-set") == 0) {	// Input is -set command
+		if (args[2] == NULL) { print_too_few_arguments(); return; }
+		
+		if (strcmp(args[2], "-l") == 0) {
+			if (args[3] == NULL) { print_too_few_arguments(); return; }
+			
+			if ( ( info = getpwnam(args[3]) ) == NULL) {	// Get info of the input login name
+				printf("There has been an error getting %s data", args[3]); return; }
+			// If no failure, set target UID
+			target_uid = info->pw_uid; 
+		} else {
+			// No -l given, and entry not NULL -> set target UID normally
+			target_uid = strtol(args[3], NULL, 10);
+		}
+		if (setuid(target_uid) == -1)	// Set UID
+			perror("uid");
+		return; // Return both on success and on error
+	}
+	print_invalid_args();
+}
+
+
+
+
+// ======================== HELP FUNCTIONS ========================
+
+
+
+
+
 void cmd_help(char *args[], tShellState *ShellState) {
     if (args[1]==NULL) {
         help_dispatcher("help");
@@ -912,9 +975,6 @@ void cmd_help(char *args[], tShellState *ShellState) {
     }
     help_dispatcher(args[1]);
 }
-
-
-
 tHelp helps[] = {
     {"authors",help_authors},
     {"getpid",help_getpid},
@@ -952,10 +1012,10 @@ tHelp helps[] = {
     {"read", help_read},
     {"write", help_write},
     {"recurse", help_recurse},
+    //P3 HELP FUNCTIONS
+    {"uid", help_uid},
     {NULL,help_help}
 };
-
-
 void help_dispatcher(char *args) {
     unsigned short int i;
     for (i = 0; helps[i].name != NULL; i++) {
@@ -966,7 +1026,6 @@ void help_dispatcher(char *args) {
     }
     helps[i].func();
 }
-
 void help_authors() {
     printf("\nauthors - List authors' names and/or logins\n"
     	"\n'authors [OPTION]'\n"
@@ -974,25 +1033,21 @@ void help_authors() {
     	"\t-l\tOnly logins\n"
     	);
 }
-
 void help_getpid() {
     printf("\ngetpid - Show pid of shell\n"
     	"\n'getpid [OPTION]'\n"
     	"\t-p\tShow pid shell's parent process\n"
     	);
 }
-
 void help_chdir() {
     printf("\nchdir - Changes current shell's directory\n"
     	"\n'chdir [PATH]'\n"
     	"\tno args shows current directory\n"
     	);
 }
-
 void help_getcwd() {
     printf("\ngetcwd - Shows shell's current directory\n");
 }
-
 void help_date() {
     printf("\ndate - Shows the date and/or the actual time\n"
     	"\n'date [OPTION]'\n"
@@ -1001,13 +1056,11 @@ void help_date() {
     	"\tno args shows both\n"
     	);
 }
-
 void help_hour() {
     printf("\ndate - Shows the actual time\n\n"
     	"\thh:mm:ss format\n"
     	);
 }
-
 void help_historic() {
     printf("\nhistoric - List commands history.\n"
     	"\n'historic [OPTION]'\n"
@@ -1017,7 +1070,6 @@ void help_historic() {
            "\t-clear\tdeletes history\n"
            );
 }
-
 void help_open() {
     printf("\nopen - Opens file and adds it to open files list.\n"
         "\n'open [PATH] [MODE]'\n"
@@ -1028,51 +1080,43 @@ void help_open() {
         "\t\ttr: O_TRUNC\n"
         );
 }
-
 void help_close() {
     printf("\nclose - Closes file and deletes its entry from open files list\n"
     	"\n'close [FD]'\n"
     	"\tFD - File descriptor of file to be closed (use listopen to check opened files)\n"
     );
 }
-
 void help_dup() {
     printf("\ndup - Duplicates descriptor of file fd and adds one new entry to open files list\n"
     	"\n'dup [FD]'\n"
    		"\tFD - File descriptor of file to be duplicated (use listopen to check opened files)\n"
     );
 }
-
 void help_listopen() {
     printf("\nlistopen - List opened files\n"
     	"\n'listopen'\n"
     );
 }
-
 void help_infosys() {
     printf("\ninfosys - Show information of the machine running the shell\n"
     	"\n'infosys'\n"
     );
 }
-
 void help_exit() {
     printf("\nexit - End shell\n"
     	"\n'exit'\n"
     );
 }
-
 void help_bye() {
     printf("\nbye - End shell.\n"
     	"\n'bye'\n"
     );
 }
-
 void help_quit() {
     printf("\nquit - End shell.\n"
     	"\n'quit'\n"
     );
 }
-
 void help_help() {
     printf("\nhelp - Show help.\n"
     	"\n'help [CMD]'\n"
@@ -1084,9 +1128,7 @@ void help_help() {
         "\tuse '--help' as OPTION in any command to show help.\n"
         );
 }
-
-// P1 HELP FUNCTIONS
-
+// ======================== P1 HELP FUNCTIONS ========================
 void help_create() {
     printf("\ncreate - Create directory or file.\n"
 		"\n'create [OPTION] [NAME]'\n"
@@ -1094,7 +1136,6 @@ void help_create() {
 		"\tno option will create a directory.\n"
 		);
 }
-
 void help_setdirparams() {
     printf ("\nsetdirparams - Stablish listing parameters for dir command.\n"
 		"\n'setdirparams [PARAMS]'\n"
@@ -1106,32 +1147,27 @@ void help_setdirparams() {
 		"\tno params will show active parameters.\n"
 		);
 }
-
 void help_getdirparams() {
     printf("\ngetdirparams - Show active listing parameters for dir command.\n"
     	"\n'getdirparams\n'"
     	);
 }
-
 void help_dir() {
     printf("\ndir - List files.\n"
     "\n'dir [OPTIONS] [PATH1] [PATH2] ...'\n"
 	"\t-d\tIf PATH is a directory, show its contents.\n"
 	);
 }
-
 void help_erase() {
     printf("\nerase - Delete empty files and/or directories.\n"
     	"\n'erase [PATH1] [PATH2] ...'\n"
     	);
 }
-
 void help_delrec() {
     printf("\nRecursively delete files and/or directories.\n"
     	"\n'delrec [PATH1] [PATH2] ...'\n"
     	);
 }
-
 void help_lseek() {
     printf("\nlseek - Set offset in file.\n"
     	"\n'lseek [FD] [OFF] [REF]'\n"
@@ -1142,16 +1178,13 @@ void help_lseek() {
 		"\t\t\tSEEK_CUR - actual position.\n"
 		"\t\t\tSEEK_END - end of the file.\n");
 }
-
 void help_writestr() {
     printf("\nwritestr - Write string in file.\n"
     	"\n'writestr [FD] [STRING]'\n"
     	"\nFD - File descriptor of file to be written.\n"
     	);
 }
-
-// P2 HELP FUNCTIONS
-
+// ======================== P2 HELP FUNCTIONS ========================
 void help_malloc() {
     printf("\nmalloc - Asign a block of memory with malloc.\n"
     	"\n'malloc [OPTIONS] [SIZE]'\n"
@@ -1159,7 +1192,6 @@ void help_malloc() {
         "\tno OPTIONS allocates a block of memory of size SIZE asigned with malloc.\n"
         );
 }
-
 void help_mmap() {
     printf("\nmmap - Map a file.\n"
     	"\n'mmap [OPTIONS] [PATH] [PERM]'\n"
@@ -1168,7 +1200,6 @@ void help_mmap() {
     	"\tPERM - permissions to map the file with.\n"
         "\t\tr|w|x\t Read and/or write and/or execute permission.\n");
 }
-
 void help_shared() {
     printf("\nshared - Create a block of shared memory.\n"
     	"\n'shared [OPTIONS] [KEY] [SIZE]'\n"
@@ -1180,14 +1211,12 @@ void help_shared() {
     	"\tno OPTIONS nor KEY lists shared memory blocks allocated and their respective keys.\n"
     	);
 }
-
 void help_free() {
 	printf("\nfree - Deallocate memory block and update blocks list.\n"
 		"\n'free [ADDR]'\n"
 		"\tADDR - Address of block to free\n"
 		);
 }
-
 void help_memfill() {
 	printf("\nmemfill - Fill memory with some character\n"
 		"\n'memfill [ADDR] [COUNT] [CH]'\n"
@@ -1196,7 +1225,6 @@ void help_memfill() {
 		"\tCH - Character to fill with\n"
 		);
 }
-
 void help_memdump() {
 	printf("\nmemdump - Dumps contents at some address to screen.\n"
 		"\n'memdump [ADDR] [COUNT]'\n"
@@ -1204,7 +1232,6 @@ void help_memdump() {
 		"\tCOUNT - Amount of bytes to dump to screen\n"
 		);
 }
-
 void help_mem() {
     printf("\nmem - Print addresses of different elements.\n"
     	"\n'mem [OPTION]'\n"
@@ -1215,7 +1242,6 @@ void help_mem() {
     	"\t-pmap\tShow output of command pmap for shell's process.\n"
     	);
 }
-
 void help_readfile() {
     printf("\nreadfile - Read from a file.\n"
     "\n'readfile [PATH] [ADDR] [COUNT]'\n"
@@ -1224,7 +1250,6 @@ void help_readfile() {
     "\tCOUNT - Amount of BYTES to read.\n"
     );
 }
-
 void help_writefile() {
     printf("\nwritefile - Write to a file.\n"
     "\n'writefile [PATH] [ADDR] [COUNT]'\n"
@@ -1233,7 +1258,6 @@ void help_writefile() {
     "\tCOUNT - Amount of BYTES to write.\n"
     );
 }
-
 void help_read() {
     printf("\nread - Read from a file.\n"
     "\n'read [FD] [ADDR] [COUNT]'\n"
@@ -1242,7 +1266,6 @@ void help_read() {
     "\tCOUNT - Amount of BYTES to read.\n"
     );
 }
-
 void help_write() {
     printf("\nwrite - Write from a file.\n"
     "\n'write [FD] [ADDR] [COUNT]'\n"
@@ -1251,12 +1274,13 @@ void help_write() {
     "\tCOUNT - Amount of BYTES to write.\n"
     );
 }
-
 void help_recurse() {
     printf("\nrecurse - Executes recursive function.\n"
 	    "\n'recurse [N]'\n"
 	    "\tN - number of times to be executed.\n"
 	    );
+}
+void help_uid() {
 }
 
 
