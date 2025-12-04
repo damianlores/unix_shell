@@ -240,15 +240,10 @@ void cmd_historic(char *args[], tShellState *ShellState) {
 
 void cmd_open(char *args[], tShellState* ShellState) {
 	// no args given -> list of open files
-    if (args[1] == NULL) {
-        cmd_listopen(args, ShellState);
-        return;
-    }
+    if (args[1] == NULL) { cmd_listopen(args, ShellState); return; }
 	// error if no open mode was input
-    if (args[2] == NULL) {
-        printf("Error. Usage: open <file> <mode>\n");
-        return;
-    }
+    if (args[2] == NULL) { print_too_few_arguments(); return; }
+
     int mode = 0;
     modes_to_flags(args+2, &mode);
 	// error if input matches no flag
@@ -581,7 +576,7 @@ void cmd_malloc(char *args[], tShellState *ShellState) {
 	// No args passed -> Print list of allocated blocks
     if (args[1] == NULL) {
     	printf("****** List of malloc blocks assigned to process %d\n", getpid());
-        printListMallocM(ShellState->MemList);
+        printListTypeM(ShellState->MemList, MEM_MALLOC);
         return;
     }   	
 	if (strcmp(args[1], "--help") == 0) { help_malloc(); return; }
@@ -630,7 +625,7 @@ void cmd_mmap(char *args[], tShellState *ShellState) {
 	// No args shows list of mapped files
     if (args[1] == NULL) {
 		printf("****** List of malloc blocks assigned to process %d:\n", getpid());
-    	printListMMapM(ShellState->MemList); 
+    	printListTypeM(ShellState->MemList, MEM_MMAP); 
     	return;
     }   	
     if (strcmp(args[1], "--help") == 0) { help_mmap(); return; }
@@ -685,9 +680,7 @@ void cmd_mem(char *args[], tShellState *ShellState) {
     }  
 	if (blocks) {
 		printf("****** List of blocks assign to the process %d\n", getpid());
-		printListMallocM(ShellState->MemList);
-		printListMMapM(ShellState->MemList);
-		printListSharedM(ShellState->MemList);
+		printListM(ShellState->MemList);
 	}
 }
 
@@ -867,7 +860,7 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 	// No args -> print shared memory blocks list
 	if (args[1]==NULL) { 
 		printf("****** List of shared blocks assigned to process %d\n", getpid());
-		printListSharedM(ShellState->MemList);
+		printListTypeM(ShellState->MemList, MEM_SHARED);
 		return;
 	}
 	

@@ -66,22 +66,6 @@ of the list.
 	PreCD: 
 	PostCD:
 */
-void printLastNH (tListH L, int n) {
-    if (L == LNULL || n == 0) return;
-
-    int total = countH(L);
-    int start = (n > 0 && n < total) ? total - n : 0;
-
-    int index = 0;
-    tPosH pos = L;
-    while (pos != LNULL) {
-        if (index >= start) {
-            printf("%ld -> %s\n", pos->data.id, pos->data.input);
-        }
-        pos = pos->next;
-        index++;
-    }
-}
 tPosH findItemH (tListH L, int id) {
     tPosH pos=L;
     if (L == LNULL)	return LNULL;
@@ -96,8 +80,14 @@ tHistoricItem getItemH(tListH L, tPosH pos) {
 tPosH firstH(tListH L) {
 	return L;
 }
+tPosH nextH(tListH L, tPosH pos) {
+	return pos->next;
+}
+
 
 // OPEN FILES LIST IMPLEMENTATION
+
+
 
 bool createNodeF(tPosF *pos) {
     *pos = malloc(sizeof(tNodeF));
@@ -189,43 +179,26 @@ tPosF findItemF(tListF L, int fd) {
 tOFilesItem getItemF(tListF L, tPosF pos) {
     return pos->data;
 }
-void printListF(tListF L) {
-	tPosF pos = L;
-	tOFilesItem item;
-    while (pos != NULL) {
-    	item = pos->data;
-    	off_t offset = lseek(item.fd, SEEK_CUR, 0);
-    	
-    	printf("descriptor: %d , offset: (", item.fd);
-    	if (offset != (off_t)-1) printf("%ld", offset);
-        if (item.dup_of == -1) {
-            printf(") -> %s",
-            	item.name);
-        } else {
-            printf(") -> duplicate of %d (%s)",
-                   item.dup_of, item.name);
-        }
-        int i = 0;
-        while (item.mode[i] != NULL) {
-        	printf(" %s", item.mode[i]);
-        	i++;
-        }
-        putchar('\n');
-        pos = pos->next;
-    }
+tPosF firstF(tListF L) {
+	return L;
+}
+tPosF nextF (tListF L, tPosF pos) {
+	return pos->next;
 }
 
+
+
 //MEM BLOCKS LIST IMPLEMENTATION
+
+
 
 bool createNodeM(tPosM *pos) {
     *pos = malloc(sizeof(tNodeM));
     return (*pos != LNULL);
 }
-
 void createEmptyListM(tListM *L) {
     *L = NULL;
 }
-
 bool insertItemM(tListM *L, tItemM item) {
     struct tNodeM *temp;
 
@@ -237,9 +210,7 @@ bool insertItemM(tListM *L, tItemM item) {
 
     return true;
 }
-
 void deleteAtPosM(tListM *L, tPosM pos) {
-
     // PRECD: if (L==LNULL) return;
     tPosM current = *L;
     tPosM prev = LNULL;
@@ -258,11 +229,9 @@ void deleteAtPosM(tListM *L, tPosM pos) {
         current = current->next;
     }
 }
-
 tItemM getItemM(tListM L, tPosM pos) {
     return pos->data;
 }
-
 tPosM findItemM(tListM L, void *addr) {
 	tPosM pos = L;
     if (L == LNULL)	return LNULL;
@@ -271,7 +240,6 @@ tPosM findItemM(tListM L, void *addr) {
     }
     return pos;
 }
-
 tPosM findMallocItemM(tListM L, size_t size) {
 	tPosM pos = L;
 	tItemM item;
@@ -284,7 +252,6 @@ tPosM findMallocItemM(tListM L, size_t size) {
     }
     return LNULL;
 }
-
 tPosM findMMapItemM(tListM L, char *filename) {
 	tPosM pos = L;
     if (L == LNULL)	return LNULL;
@@ -293,7 +260,6 @@ tPosM findMMapItemM(tListM L, char *filename) {
     }
     return pos;
 }
-
 tPosM findSharedItemM(tListM L, key_t key) {
 	tPosM pos = L;
     if (L == LNULL)	return LNULL;
@@ -302,49 +268,11 @@ tPosM findSharedItemM(tListM L, key_t key) {
     }
     return pos;
 }
-
 tPosM firstM(tListM L) {
 	return L;
 }
-
 tPosM nextM(tListM L, tPosM pos) {
     return pos -> next;
-}
-
-
-void printListM(tListM L) {
-	char type[7];
-    while (L != NULL) {
-    		if (L->data.alloc_mode == MEM_MALLOC) strcpy(type, "malloc");
-    		if (L->data.alloc_mode == MEM_MMAP) strcpy(type, "mmap");
-    		if (L->data.alloc_mode == MEM_SHARED) strcpy(type, "shared");
-        	printf("%-16p %-16ld %-30s %s", L->data.addr, L->data.size, L->data.time, type);
-        L = L->next;
-    }
-}
-
-void printListMallocM(tListM L) {
-    while (L != NULL) {
-    	if (L->data.alloc_mode==MEM_MALLOC)
-        	printf("%-16p %-16ld %-30s malloc\n", L->data.addr, L->data.size, L->data.time);
-        L = L->next;
-    }
-}
-
-void printListMMapM(tListM L) {
-    while (L != NULL) {
-    	if (L->data.alloc_mode==MEM_MMAP)
-        	printf("%-16p %-16ld %-30s mmap\n", L->data.addr, L->data.size, L->data.time);
-        L = L->next;
-    }
-}
-
-void printListSharedM(tListM L) {
-    while (L != NULL) {
-    	if (L->data.alloc_mode==MEM_SHARED)
-        	printf("%-16p %-16ld %-30s shared (key %d)\n", L->data.addr, L->data.size, L->data.time, L->data.key);
-        L = L->next;
-    }
 }
 
 

@@ -11,12 +11,17 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
-
-
-
 #include "file_system.h"
+#include "dynamic_list.h"
 #include "types.h"
 
+
+void init_dir_params(tDirParams* dirParams) {
+	dirParams->long_format = false;
+	dirParams->link = false;
+	dirParams->show_hid = false;
+	dirParams->rec_mode = REC_OFF;
+}
 char letterTF(mode_t m)
 {
 	switch (m&S_IFMT) { // bit-by-bit AND bit with format bits, 0170000
@@ -84,7 +89,6 @@ void copy_open_file_flags(char** dest, char** src) {
 	}
 	dest[i] = NULL;
 }
-
 int isDir(char* dir) { // whether dir is a directory or not
 	struct stat s;
 	if (lstat(dir,&s)==-1)       // if cannot access -> not a directory
@@ -92,12 +96,91 @@ int isDir(char* dir) { // whether dir is a directory or not
 	return (S_ISDIR(s.st_mode));
 }
 
-void init_dir_params(tDirParams* dirParams) {
-	dirParams->long_format = false;
-	dirParams->link = false;
-	dirParams->show_hid = false;
-	dirParams->rec_mode = REC_OFF;
+
+
+// LIST PRINTING FUNCTIONS
+
+
+
+void printLastNH (tListH L, int n) {
+    if (L == LNULL || n == 0) return;
+
+    size_t total = countH(L);
+    size_t start = (n > 0 && n < total) ? total - n : 0;
+
+    tPosH pos = firstH(L);
+    for (int i = 0; i < start; i++) {
+    	pos = nextH(L, pos);
+    	if (pos == LNULL) break;
+    }
+	while (pos != LNULL) {
+        printf("%ld -> %s\n", pos->data.id, pos->data.input);
+        pos = nextH(L, pos);
+    }
 }
+void printListF(tListF L) {
+	tPosF pos = firstF(L);
+	tOFilesItem item;
+    while (pos != NULL) {
+    	item = getItemF(L, pos);
+    	
+    	printf("descriptor: %d -> ", item.fd);
+        if (item.dup_of == -1) printf("%s", item.name);
+        else printf("duplicate of %d (%s)", item.dup_of, item.name);
+        int i = 0;
+        while (item.mode[i] != NULL) { printf(" %s", item.mode[i]); i++; }
+        putchar('\n');
+
+        pos = nextF(L, pos);
+    }
+}
+char* get_alloc_type_str(tMemType type) {
+	switch (type) {
+		case MEM_MALLOC: return "malloc";
+		case MEM_MMAP: return "mmap";
+		case MEM_SHARED: return "shared";
+		default: return "";
+	}
+}
+void printListM(tListM L) {
+	char* type;
+	tPosM pos = firstM(L);
+	tItemM item;
+    while (pos != NULL) {
+    	item = getItemM(L, pos);
+    	type = get_alloc_type_str(item.alloc_mode);
+        printf("%-16p %-16ld %-30s %s",
+        	item.addr,
+        	item.size,
+        	item.time,
+        	type);
+        if (item.alloc_mode == MEM_MMAP) printf(" (descriptor %d)", item.fd);
+        if (item.alloc_mode == MEM_SHARED) printf(" (key %d)", item.key);
+        putchar('\n');
+        
+        pos = nextM(L, pos);
+    }
+}
+void printListTypeM(tListM L, tMemType type) {
+	char* type_str = get_alloc_type_str(type);
+	tPosM pos = firstM(L);
+	tItemM item;
+    while (pos != NULL) {
+    	item = getItemM(L, pos);
+    	if (item.alloc_mode == type)
+        	printf("%-16p %-16ld %-30s %s",
+        		item.addr,
+        		item.size,
+        		item.time,
+        		type_str);
+			if (type == MEM_MMAP) printf(" (descriptor %d)", item.fd);
+     		if (type == MEM_SHARED) printf(" (key %d)", item.key);
+     	putchar('\n');
+     	
+        pos = nextM(L, pos);
+    }
+}
+
 
 void concatPath (char* dest, const char* path, const char* addition) {
     if (addition[0] == '/') { 

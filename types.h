@@ -22,7 +22,7 @@ typedef struct {
     char* mode[FLAGS_MAX];
 } tOFilesItem;
 // Definition of constants for mmap function
-typedef enum { MEM_MALLOC, MEM_MMAP, MEM_SHARED } tMemType;
+typedef enum { MEM_MALLOC, MEM_MMAP, MEM_SHARED , ALLOC_MODE_COUNT } tMemType;
 // ADT of memory blocks list item
 typedef struct {
     void *addr;
