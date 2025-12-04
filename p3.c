@@ -19,8 +19,9 @@ int main() {
 	createEmptyListH(&ShellState.HistoricList);
 	createEmptyListF(&ShellState.OFList);
 	createEmptyListM(&ShellState.MemList);
-	inherit_std_descriptors(&ShellState.OFList);	
+	createEmptyListP(&ShellState.ProcList);
 	
+	inherit_std_descriptors(&ShellState.OFList);
 	init_dir_params(&ShellState.dirParams);
 
 

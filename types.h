@@ -45,10 +45,15 @@ typedef struct {
     .key = -1 \
 }
 
+typedef struct {
+    int id;
+} tItemP;
+
 // Forward declarations for list types (they are defined in dynamic_list.h)
 typedef struct tNodeH* tListH;
 typedef struct tNodeF* tListF;
 typedef struct tNodeM* tListM;
+typedef struct tNodeP* tListP;
 
 // Definition of constants for recursive format used in dir command
 typedef enum {REC_OFF , REC_BEFORE , REC_AFTER} tRecFormat;
@@ -66,12 +71,12 @@ typedef struct {
     tListH HistoricList;
     tListF OFList;
     tListM MemList;
+    tListP ProcList;
 } tShellState;
 
 
 // ADT of command functions for dispatch table
 typedef void (*tCommandFunc) (char *args[], tShellState *ShellState);
-
 // ADT of commands
 typedef struct  {
     const char* name;
@@ -80,7 +85,7 @@ typedef struct  {
 
 // ADT of help functions for dispatch table
 typedef void (*tHelpFunc) ();
-
+// ADT of help commands
 typedef struct  {
     const char* name;
     tHelpFunc func;

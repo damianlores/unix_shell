@@ -26,9 +26,15 @@ typedef struct tNodeM {
     tItemM data;
     tPosM next;
 } tNodeM;
+// tListP type is declared in types.h
+typedef struct tNodeP* tPosP;
+typedef struct tNodeP {
+    tItemP data;
+    tPosP next;
+} tNodeP;
+
 
 // HISTORIC LIST
-bool createNodeH (tListH *pos);
 void createEmptyListH (tListH *L);
 void clearListH (tListH *L);
 bool insertItemH (tListH *L, tHistoricItem item);
@@ -39,7 +45,6 @@ tPosH firstH(tListH L);
 tPosH nextH(tListH L, tPosH pos);
 
 // OPEN FILES LIST
-bool createNodeF (tPosF *pos);
 void createEmptyListF (tListF *L);
 void clearListF (tListF *L);
 bool insertItemF (tListF *L, tOFilesItem item);
@@ -50,7 +55,6 @@ tPosF firstF(tListF L);
 tPosF nextF (tListF L, tPosF pos);
 
 // MEMORY BLOCKS LIST
-bool createNodeM(tPosM *p);
 void createEmptyListM(tListM *L);
 bool insertItemM(tListM *L, tItemM item);
 tItemM getItemM(tListM L, tPosM pos);
@@ -61,5 +65,16 @@ tPosM findMMapItemM(tListM L, char *filename);
 tPosM findSharedItemM(tListM L, key_t key);
 tPosM firstM(tListM L);
 tPosM nextM (tListM L, tPosM pos);
+
+// MEMORY BLOCKS LIST
+bool createNodeP(tPosP *p);
+void createEmptyListP(tListP *L);
+bool insertItemP(tListP *L, tItemP item);
+tItemP getItemP(tListP L, tPosP pos);
+// tPosP findItemP(tListP L, );
+void deleteAtPosP(tListP *L, tPosP pos);
+// tPosM findItemItemP(tListP L, );
+tPosM firstP(tListP L);
+tPosM nextP(tListP L, tPosP pos);
 
 #endif

@@ -277,7 +277,13 @@ tPosM nextM(tListM L, tPosM pos) {
 
 
 
-
+bool createNodeP(tPosP *pos) {
+    *pos = malloc(sizeof(tNodeP));
+    return (*pos != LNULL);
+}
+void createEmptyListM(tListP *L) {
+    *L = NULL;
+}
 
 
 
