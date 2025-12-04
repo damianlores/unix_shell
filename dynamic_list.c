@@ -7,7 +7,9 @@
 #include "dynamic_list.h"
 
 
-// HISTORIC LIST IMPLEMENTATION:
+
+// ======================== HISTORIC LIST IMPLEMENTATION ========================s
+
 
 
 bool createNodeH(tPosH *pos) {
@@ -59,13 +61,6 @@ size_t countH (tListH L) {
     }
     return cnt;
 }
-/*
-printLastNH: prints last nth elements of the list, e.g.: if the given number n to the function is 5, the last
-5 elements to have entered the list are print. If given number is negative the functions works printing every element
-of the list.
-	PreCD: 
-	PostCD:
-*/
 tPosH findItemH (tListH L, int id) {
     tPosH pos=L;
     if (L == LNULL)	return LNULL;
@@ -85,7 +80,8 @@ tPosH nextH(tListH L, tPosH pos) {
 }
 
 
-// OPEN FILES LIST IMPLEMENTATION
+
+// ======================== OPEN FILES LIST IMPLEMENTATION ========================
 
 
 
@@ -188,7 +184,7 @@ tPosF nextF (tListF L, tPosF pos) {
 
 
 
-//MEM BLOCKS LIST IMPLEMENTATION
+// ======================== MEM BLOCKS LIST IMPLEMENTATION ========================
 
 
 
@@ -274,6 +270,27 @@ tPosM firstM(tListM L) {
 tPosM nextM(tListM L, tPosM pos) {
     return pos -> next;
 }
+
+
+
+// ======================== PROCESSES LIST IMPLEMENTATION ========================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

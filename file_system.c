@@ -103,12 +103,13 @@ int isDir(char* dir) { // whether dir is a directory or not
 
 
 void printLastNH (tListH L, int n) {
-    if (L == LNULL || n == 0) return;
+	tPosH pos = firstH(L);
+    
+    if (pos == LNULL || n == 0) return;
 
     size_t total = countH(L);
     size_t start = (n > 0 && n < total) ? total - n : 0;
 
-    tPosH pos = firstH(L);
     for (int i = 0; i < start; i++) {
     	pos = nextH(L, pos);
     	if (pos == LNULL) break;
