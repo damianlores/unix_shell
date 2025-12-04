@@ -14,6 +14,7 @@ typedef struct {
     char input[MAX_INPUT];
     size_t id;
 } tHistoricItem;
+
 // ADT of open files list item
 typedef struct {
     int fd;
@@ -21,6 +22,7 @@ typedef struct {
     char name[NAME_MAX];
     char* mode[FLAGS_MAX];
 } tOFilesItem;
+
 // Definition of constants for mmap function
 typedef enum { MEM_MALLOC, MEM_MMAP, MEM_SHARED , ALLOC_MODE_COUNT } tMemType;
 // ADT of memory blocks list item
@@ -33,7 +35,6 @@ typedef struct {
     int fd;
     key_t key;
 } tItemM;
-
 #define DEFAULT_ITEM_M (tItemM){ \
     .addr = NULL, \
     .size = 0, \
@@ -44,9 +45,13 @@ typedef struct {
     .key = -1 \
 }
 
+// Forward declarations for list types (they are defined in dynamic_list.h)
+typedef struct tNodeH* tListH;
+typedef struct tNodeF* tListF;
+typedef struct tNodeM* tListM;
+
 // Definition of constants for recursive format used in dir command
 typedef enum {REC_OFF , REC_BEFORE , REC_AFTER} tRecFormat;
-
 // Definition of directory info-printing data
 typedef struct {
 	bool long_format;
@@ -54,17 +59,6 @@ typedef struct {
 	bool show_hid;
 	tRecFormat rec_mode;
 } tDirParams;
-
-
-
-
-// Forward declarations for list types (they are defined in dynamic_list.h)
-typedef struct tNodeH* tListH;
-typedef struct tNodeF* tListF;
-typedef struct tNodeM* tListM;
-
-
-
 
 // ADT of shell data
 typedef struct {
@@ -75,10 +69,6 @@ typedef struct {
 } tShellState;
 
 
-
-
-
-
 // ADT of command functions for dispatch table
 typedef void (*tCommandFunc) (char *args[], tShellState *ShellState);
 
@@ -87,9 +77,6 @@ typedef struct  {
     const char* name;
     tCommandFunc func;
 } tCommand;
-
-
-
 
 // ADT of help functions for dispatch table
 typedef void (*tHelpFunc) ();
