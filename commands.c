@@ -938,25 +938,25 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 		}
 		printf("Effective credential: %d (%s)\n", info->pw_uid, info->pw_name);	
 	}
-	if (strcmp(args[1], "-set") == 0) {	// Input is -set command
+	else if (strcmp(args[1], "-set") == 0) {	// Input is -set command
 		if (args[2] == NULL) { print_too_few_arguments(); return; }
 		
 		if (strcmp(args[2], "-l") == 0) {
 			if (args[3] == NULL) { print_too_few_arguments(); return; }
 			
 			if ( ( info = getpwnam(args[3]) ) == NULL) {	// Get info of the input login name
-				printf("There has been an error getting %s data", args[3]); return; }
+				printf("Could not retrieve login '%s' data\n", args[3]); return; }
 			// If no failure, set target UID
-			target_uid = info->pw_uid; 
+			target_uid = info->pw_uid;
 		} else {
-			// No -l given, and entry not NULL -> set target UID normally
-			target_uid = strtol(args[3], NULL, 10);
-		}
+		// No -l given, and entry not NULL -> set target UID normally
+		target_uid = strtol(args[2], NULL, 10);
+		} 
 		if (setuid(target_uid) == -1)	// Set UID
-			perror("uid");
+			perror("Could not set uid");
 		return; // Return both on success and on error
 	}
-	print_invalid_args(args[1]);
+	else print_invalid_args(args[1]);
 }
 
 
