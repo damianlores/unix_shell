@@ -117,19 +117,15 @@ bool cmd_dispatcher(char *args[], tShellState* ShellState) {
 
 
 void cmd_authors(char *args[], tShellState *ShellState) {
-
     bool show_names = false, show_logins = false;
-
     for (int i = 1; args[i]; i++) {
         if (strcmp(args[i], "-l") == 0) show_logins = true;
     	else if (strcmp(args[i], "-n") == 0) show_names = true;
     	else if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_authors(); return; } 
     	else { print_invalid_usage(); return; }
     } 
-
     if (!show_names && !show_logins)
         show_names = show_logins = true;
-
     if (show_logins) {
     	const char* logins[] = {"d.lores@udc.es", "m.pazos2@udc.es"};
         for (int i = 0; i < 2; i++)
@@ -152,14 +148,12 @@ void cmd_getpid(char *args[], tShellState *ShellState) {
 }
 
 void cmd_chdir(char *args[], tShellState *ShellState) {
-
-    char cwd[PATH_MAX];
-
     if ((args[1] != NULL) && (strcmp(args[1], "--help") == 0)) { help_chdir(); return; }
     
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-        printf("Current directory: %s\n", cwd);
-
+    char cwd[PATH_MAX];
+    
+    if (getcwd(cwd, sizeof(cwd)) != NULL) printf("Current directory: %s\n", cwd);
+    
     if (chdir(args[1]) == 0) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -168,23 +162,19 @@ void cmd_chdir(char *args[], tShellState *ShellState) {
 }
 
 void cmd_getcwd(char *args[], tShellState *ShellState) {
-
-	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_getcwd(); return; }
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_getcwd(); return; }
     char cwd[PATH_MAX];
 
     if (getcwd(cwd, sizeof(cwd)) != NULL)
         printf("Current directory: %s\n", cwd);
 }
 
-
 void cmd_date(char *args[], tShellState *ShellState) {
-
     time_t t = time(NULL);
     struct tm *tm_read = localtime(&t);
 
     char date[11];
     strftime(date, sizeof(date), "%d/%m/%Y", tm_read);
-
     char hour[9];
     strftime(hour, sizeof(hour), "%H:%M:%S", tm_read);
 
@@ -206,7 +196,6 @@ void cmd_date(char *args[], tShellState *ShellState) {
 }
 
 void cmd_hour(char *args[], tShellState *ShellState) {
-
 	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_hour(); return; }
 	
     time_t t = time(NULL);
@@ -215,7 +204,6 @@ void cmd_hour(char *args[], tShellState *ShellState) {
     strftime(time, sizeof(time), "%H:%M:%S", tm_read);
 
     printf("%s\n", time);
-
 }
 
 void cmd_historic(char *args[], tShellState *ShellState) {

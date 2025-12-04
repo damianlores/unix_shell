@@ -46,7 +46,10 @@ typedef struct {
 }
 
 typedef struct {
-    int id;
+    uid_t uid;
+    time_t launch_time;
+    char command[CHAR_MAX];
+    
 } tItemP;
 
 // Forward declarations for list types (they are defined in dynamic_list.h)

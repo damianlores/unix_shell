@@ -53,7 +53,7 @@ int CambiarVariable(char * var, char * valor, char *e[]) /*cambia una variable e
 }
 
 /*las siguientes funciones nos permiten obtener el nombre de una senal a partir
-del nÃºmero y viceversa */
+del numero y viceversa */
 static struct SEN sigstrnum[]={   
 	{"HUP", SIGHUP},
 	{"INT", SIGINT},
