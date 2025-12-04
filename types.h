@@ -45,12 +45,24 @@ typedef struct {
     .key = -1 \
 }
 
+// Definition of constants for process status
+typedef enum { FINISHED , STOPPED , SIGNALED , ACTIVE } tProcStatus
+// ADT of process list item
 typedef struct {
     uid_t uid;
     time_t launch_time;
+    tProcStatus status;
     char command[CHAR_MAX];
-    
+    int priority;
 } tItemP;
+#define DEFAULT_ITEM_P (tItemP){ \
+    .uid = -1, \
+    .launch_time = -1, \
+    .status = ACTIVE, \
+    .command = "", \
+    .priority = -1, \
+}
+
 
 // Forward declarations for list types (they are defined in dynamic_list.h)
 typedef struct tNodeH* tListH;
