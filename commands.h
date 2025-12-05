@@ -44,7 +44,12 @@ void cmd_write(char* args[], tShellState* ShellState);
 void cmd_recurse(char* args[], tShellState* ShellState);
 // P3
 void cmd_uid(char* args[], tShellState* ShellState);
-
+void cmd_envvar(char* args[], tShellState* ShellState);
+void cmd_showenv(char* args[], tShellState* ShellState);
+void cmd_fork(char* args[], tShellState* ShellState);
+void cmd_exec(char* args[], tShellState* ShellState);
+void cmd_jobs(char* args[], tShellState* ShellState);
+void cmd_deljobs(char* args[], tShellState* ShellState);
 
 // 	HELP FUNCTIONS
 
@@ -88,5 +93,11 @@ void help_write();
 void help_recurse();
 //
 void help_uid();
+void help_envvar();
+void help_showenv();
+void help_fork();
+void help_exec();
+void help_deljobs();
+void help_jobs();
 
 #endif

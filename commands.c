@@ -25,6 +25,7 @@
 #include "shell.h"
 #include "file_system.h"
 #include "mem_management.h"
+#include "processes.h"
 
 
 #define DEFAULT_DUMP_SIZE 25
@@ -83,6 +84,7 @@ tCommand commands[] = {
     {"recurse", cmd_recurse},
     // P3
     {"uid", cmd_uid},
+    {"envvar", cmd_envvar},
     {NULL, NULL}
 };
 
@@ -645,7 +647,7 @@ void cmd_mmap(char *args[], tShellState *ShellState) {
     // No permissions given? Return:
     if (args[2] == NULL) { print_too_few_arguments(); return; }
     // File is mapped, args are present -> call mapping aux function:
-    do_mmap(args, &ShellState->OFList, &ShellState->MemList);
+    doMmap(args, &ShellState->OFList, &ShellState->MemList);
 }
 
 void cmd_mem(char *args[], tShellState *ShellState) {
@@ -662,7 +664,7 @@ void cmd_mem(char *args[], tShellState *ShellState) {
     else if (strcmp(args[1], "-vars") == 0) vars = true;
     else if (strcmp(args[1], "-blocks") == 0) blocks = true;
     else if (strcmp(args[1], "-all") == 0) funcs = vars = blocks = true;
-    else if (args[1] && strcmp(args[1], "-pmap") == 0) { do_pmap(); return; } 
+    else if (args[1] && strcmp(args[1], "-pmap") == 0) { doPmap(); return; } 
     else { print_invalid_usage(); return; }
     
     if (funcs) {
@@ -878,7 +880,7 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 		
 		if (size<=0) { print_invalid_args(args[3]); return; }
 		
-		if ((p = obtainMemoryShmget(&ShellState->MemList, key, size)) != NULL) {
+		if ((p = doObtainMemoryShmget(&ShellState->MemList, key, size)) != NULL) {
 			printf ("Allocated %lu bytes in %p\n",(unsigned long) size, p);
 			return; 
 			}
@@ -896,7 +898,7 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 		}
 	} else if (strcmp(args[1], "-delkey") == 0) {
 		if (args[2] == NULL) { print_invalid_usage(); return; }
-		else { do_deleteKeyShared(strtoul(args[2], NULL, 10)); return; }
+		else { doDeleteKeyShared(strtoul(args[2], NULL, 10)); return; }
 	} else 
 		doSharedAttach(args, &ShellState->MemList);
 }
@@ -948,7 +950,7 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 }
 
 void cmd_envvar(char *args[], tShellState *ShellState) {
-
+	if (args[1] == NULL) ShowEnvironment(ShellState->env, "env");
 }
 
 
@@ -1010,7 +1012,8 @@ tHelp helps[] = {
     {"recurse", help_recurse},
     //P3 HELP FUNCTIONS
     {"uid", help_uid},
-    {NULL,help_help}
+    {"envvar", help_envvar},
+    {NULL,help_help},
 };
 void help_dispatcher(char *args) {
     unsigned short int i;
@@ -1278,7 +1281,8 @@ void help_recurse() {
 }
 void help_uid() {
 }
-
+void help_envvar() {
+}
 
 
 
