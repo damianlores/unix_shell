@@ -45,13 +45,16 @@ typedef struct {
     .key = -1 \
 }
 
-// Definition of constants for process status
-typedef enum { FINISHED , STOPPED , SIGNALED , ACTIVE } tProcStatus
+// Definition of item of process signal dispatch table 
+typedef struct signal {
+	const char* name;
+    int status;
+} tProcSignal;
 // ADT of process list item
 typedef struct {
     uid_t uid;
     time_t launch_time;
-    tProcStatus status;
+    int signal;
     char command[CHAR_MAX];
     int priority;
 } tItemP;
@@ -87,7 +90,7 @@ typedef struct {
     tListF OFList;
     tListM MemList;
     tListP ProcList;
-    char* env[];
+    char** env;
 } tShellState;
 
 

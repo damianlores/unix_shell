@@ -3,7 +3,6 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
-
 #include "types.h"
 
 #define LNULL NULL
@@ -66,8 +65,7 @@ tPosM findSharedItemM(tListM L, key_t key);
 tPosM firstM(tListM L);
 tPosM nextM (tListM L, tPosM pos);
 
-// MEMORY BLOCKS LIST
-bool createNodeP(tPosP *p);
+// 	PROCESSES LIST
 void createEmptyListP(tListP *L);
 bool insertItemP(tListP *L, tItemP item);
 tItemP getItemP(tListP L, tPosP pos);

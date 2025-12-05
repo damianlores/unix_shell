@@ -10,6 +10,8 @@
 #include "shell.h"
 #include "commands.h"
 #include "file_system.h"
+#include "processes.h"
+
 
 
 int main(int envc, char* argv[], char* env[]) {

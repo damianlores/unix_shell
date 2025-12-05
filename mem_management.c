@@ -20,7 +20,7 @@
 
 
 
-void *obtainMemoryShmget(tListM *memList, key_t key, size_t size) {
+void *doObtainMemoryShmget(tListM *memList, key_t key, size_t size) {
     void *p;
     int aux, id, flags=0777; // least 9 significant bits of flags: permissions
     struct shmid_ds s;
@@ -147,11 +147,11 @@ void *mapFile(char *filename, int protection, tListF *OFList, tListM *memList) {
     return p;
 }
 
-void do_mmap(char *args[], tListF *OFList, tListM *memList) { 
+void doMmap(char *args[], tListF *OFList, tListM *memList) { 
     char *perm;
 	void *p;
     int protection=0;
-	
+
     if ((perm = args[2]) != NULL && strlen(perm) < 4) {
     	if (strchr(perm,'r')!=NULL) protection|=PROT_READ;
 		if (strchr(perm,'w')!=NULL) protection|=PROT_WRITE;
@@ -205,7 +205,7 @@ void freeBlocks(tListM *memList) {
 	}
 }
 
-void do_deleteKeyShared (key_t key) {
+void doDeleteKeyShared (key_t key) {
     int id;
 	if (key == IPC_PRIVATE) {
 		printf ("Delete key needs valid key\n");
@@ -281,7 +281,7 @@ ssize_t writeFile(char *f, void *p, size_t cont) {
 
 
 
-void do_pmap (void) { 
+void doPmap (void) { 
 	pid_t pid;       /*hace el pmap (o equivalente) del proceso actual*/
     char elpid[32];
     char *argv[4]= {"pmap", elpid, NULL};

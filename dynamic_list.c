@@ -281,7 +281,7 @@ bool createNodeP(tPosP *pos) {
     *pos = malloc(sizeof(tNodeP));
     return (*pos != LNULL);
 }
-void createEmptyListM(tListP *L) {
+void createEmptyListP(tListP *L) {
     *L = NULL;
 }
 
