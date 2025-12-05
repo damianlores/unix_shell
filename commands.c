@@ -950,7 +950,22 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 }
 
 void cmd_envvar(char *args[], tShellState *ShellState) {
-	if (args[1] == NULL) ShowEnvironment(ShellState->env, "env");
+	if (args[1] == NULL) { 
+		doShowEnvironment(ShellState->env, "env");
+		return;
+	}
+	if ((strcmp(args[1], "-show") == 0) && (args[2] == NULL)) {
+		doShowEnvironment(ShellState->env, "env");
+		return;
+	}
+	else {
+		int var_index;
+		if ((var_index = doSearchVariable(ShellState->env, args[2])) == -1) {
+			perror("envvar");
+			return;
+		}
+		printVar(ShellState->env, args[2], var_index);
+	}
 }
 
 
