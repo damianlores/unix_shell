@@ -947,6 +947,14 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 	else print_invalid_args(args[1]);
 }
 
+void cmd_envvar(char *args[], tShellState *ShellState) {
+
+}
+
+
+
+
+
 
 
 

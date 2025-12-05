@@ -87,6 +87,7 @@ typedef struct {
     tListF OFList;
     tListM MemList;
     tListP ProcList;
+    char* env[];
 } tShellState;
 
 
