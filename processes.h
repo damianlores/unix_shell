@@ -11,9 +11,12 @@
 
 extern char** environ;
 
-void printVar(char* env[], char* env_name, int index);
 void doShowEnvironment(char* env[], char* env_name);
 int doSearchVariable(char* env[], char* var_name);
-
+void printVarArg3(char* val);
+void printVarEnv(int index);
+void printVarGetenv(char* val);
+void doChangeVar(char* env[], char* var, char* value);
+void doChangeVarPutenv(char* var, char* value);
 
 #endif

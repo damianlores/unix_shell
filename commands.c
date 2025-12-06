@@ -85,6 +85,7 @@ tCommand commands[] = {
     // P3
     {"uid", cmd_uid},
     {"envvar", cmd_envvar},
+    {"showenv", cmd_showenv},
     {NULL, NULL}
 };
 
@@ -96,7 +97,7 @@ void print_too_few_arguments() {
 	printf("Too few arguments. Run with '--help' to show help.\n");
 }
 void print_invalid_args(char* args) { 
-	printf("Invalid arguemnts: %s\n", args);
+	printf("Invalid arguments: %s\n", args);
 }
 
 
@@ -123,8 +124,8 @@ void cmd_authors(char *args[], tShellState *ShellState) {
     for (int i = 1; args[i]; i++) {
         if (strcmp(args[i], "-l") == 0) show_logins = true;
     	else if (strcmp(args[i], "-n") == 0) show_names = true;
-    	else if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_authors(); return; } 
-    	else { print_invalid_usage(); return; }
+    	else if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) return help_authors();
+    	else return print_invalid_usage();
     } 
     if (!show_names && !show_logins)
         show_names = show_logins = true;
@@ -145,12 +146,12 @@ void cmd_getpid(char *args[], tShellState *ShellState) {
         printf("Shell's pid %d\n", getpid());
     } else if (strcmp(args[1],"-p")==0) {
         printf("Shell's father pid: %d\n", getppid());
-    } else if (strcmp(args[1], "--help") == 0) { help_getpid(); return; } 
+    } else if (strcmp(args[1], "--help") == 0) return help_getpid();
     else print_invalid_usage();
 }
 
 void cmd_chdir(char *args[], tShellState *ShellState) {
-    if ((args[1] != NULL) && (strcmp(args[1], "--help") == 0)) { help_chdir(); return; }
+    if ((args[1] != NULL) && (strcmp(args[1], "--help") == 0)) return help_chdir();
     
     char cwd[PATH_MAX];
     
@@ -164,7 +165,7 @@ void cmd_chdir(char *args[], tShellState *ShellState) {
 }
 
 void cmd_getcwd(char *args[], tShellState *ShellState) {
-	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_getcwd(); return; }
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_getcwd();
     char cwd[PATH_MAX];
 
     if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -186,7 +187,7 @@ void cmd_date(char *args[], tShellState *ShellState) {
     for (int i = 1; args[i] != NULL; i++) {
         if (strcmp(args[i], "-d") == 0) show_date = true;
         if (strcmp(args[i], "-t") == 0) show_time = true;
-        if (strcmp(args[1], "--help") == 0) { help_date(); return; }
+        if (strcmp(args[1], "--help") == 0) return help_date();
     }
 
     if (!show_date && !show_time) {
@@ -198,7 +199,7 @@ void cmd_date(char *args[], tShellState *ShellState) {
 }
 
 void cmd_hour(char *args[], tShellState *ShellState) {
-	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) { help_hour(); return; }
+	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) return help_hour();
 	
     time_t t = time(NULL);
     struct tm *tm_read = localtime(&t);
@@ -213,7 +214,7 @@ void cmd_historic(char *args[], tShellState *ShellState) {
     // the whole list is printed.
     if (args[1]==NULL) printLastNH(ShellState->HistoricList, -1);
     
-    else if (strcmp(args[1], "--help") == 0) { help_historic(); return; }
+    else if (strcmp(args[1], "--help") == 0) return help_historic();
     
     else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %ld\n", countH(ShellState->HistoricList));
     
@@ -223,15 +224,21 @@ void cmd_historic(char *args[], tShellState *ShellState) {
     else if (args[1][0] == '-') {
         // Format: "-<number>"
         ssize_t n = (ssize_t)strtoul(args[1] + 1 /* this skips the '-' input*/ , NULL, 10);
-        if (n <= 0) { printf("Error: number must be greater than 0.\n"); return; }
+        if (n <= 0) { 
+        	errno = EFAULT;
+        	perror("Index out of bounds");
+        	return;
+        }
         printLastNH(ShellState->HistoricList, n);
     }
     else {
         size_t id = strtoul(args[1], NULL, 10);
         if (countH(ShellState->HistoricList) <= id) {
-            printf("Error: Index out of bounds.\n");
-            return;
+        	errno = EFAULT;
+        	perror("Index out of bounds");
+        	return;
         }
+            
     // If every conditional was unsuccesful we can finally execute the n-th command of historic
     tPosH temp = findItemH(ShellState->HistoricList,id);
     inputProcess(getItemH(ShellState->HistoricList,temp).input, ShellState);
@@ -248,7 +255,7 @@ void cmd_open(char *args[], tShellState* ShellState) {
     modes_to_flags(args+2, &mode);
 	// error if input matches no flag
     int fd = open(args[1], mode, 0777);
-    if (fd == -1) { perror("Imposible to open file"); return; 	}
+    if (fd == -1) return perror("Imposible to open file");
 
     tOFilesItem item;
     item.fd = fd;
@@ -265,11 +272,11 @@ void cmd_open(char *args[], tShellState* ShellState) {
 }
 
 void cmd_close(char *args[], tShellState *ShellState) {
-    if (args[1] == NULL) { print_too_few_arguments(); return; }
-    if (strcmp(args[1], "--help") == 0) { help_close(); return; }
+    if (args[1] == NULL) return print_too_few_arguments();
+    if (strcmp(args[1], "--help") == 0) return help_close();
 
     ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
-    if (close(fd) == -1) { perror("Imposible to close descriptor'"); return; }
+    if (close(fd) == -1) return perror("Imposible to close descriptor'");
 
     deleteAtPosF(&ShellState->OFList,
     	findItemF(ShellState->OFList, fd)); // No need to check if file descriptor exists as of thanks to beforehand close syscall
@@ -277,13 +284,13 @@ void cmd_close(char *args[], tShellState *ShellState) {
 
 
 void cmd_dup(char *args[], tShellState *ShellState) {
-    if (args[1] == NULL) { print_too_few_arguments(); return; }    
-	if (strcmp(args[1], "--help") == 0) { help_dup(); return; }
+    if (args[1] == NULL) return print_too_few_arguments();
+	if (strcmp(args[1], "--help") == 0) return help_dup();
 
     int newfd, oldfd = strtol(args[1], NULL, 10);
     newfd = dup(oldfd);
     
-    if (newfd == -1) { perror("Imposible to make dup of descriptor"); return; }
+    if (newfd == -1) return perror("Imposible to make dup of descriptor");
 
     tPosF pos = findItemF(ShellState->OFList, oldfd);
     tOFilesItem oldItem = getItemF(ShellState->OFList, pos);
@@ -301,24 +308,23 @@ void cmd_dup(char *args[], tShellState *ShellState) {
 }
 
 void cmd_infosys(char *args[], tShellState *ShellState) {
-	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_infosys(); return; }
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_infosys();
     struct utsname info;
-    if (uname(&info) == -1) {
-        perror("Imposible to retrieve system info'");
-        return;
-    }
+    if (uname(&info) == -1)
+        return perror("Imposible to retrieve system info'");
+
     printf("%s (%s), OS: %s-%s-%s\n",info.nodename, info.machine, info.sysname, info.release, info.version);
 }
 
 void cmd_listopen(char *args[], tShellState *ShellState) {
-	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_listopen(); return; }
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_listopen();
 	
     printListF(ShellState->OFList);
 }
 
 
 void cmd_exit(char *args[], tShellState *ShellState) {
-    if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) { help_exit(); return; }
+    if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_exit();
     clearListH(&ShellState -> HistoricList);
     clearListF(&ShellState -> OFList);
     freeBlocks(&ShellState -> MemList);
@@ -327,7 +333,9 @@ void cmd_exit(char *args[], tShellState *ShellState) {
 
 
 
+
 // ======================== P1 FUNCTIONS (NON-HELP FUNCTIONS) ========================
+
 
 
 
@@ -335,19 +343,16 @@ void cmd_create(char *args[], tShellState *ShellState) {
     //Checks the -f argument is passed
     if (args[1] == NULL) print_invalid_usage();
     	
-    if (strcmp(args[1], "--help") == 0) { help_create(); return; }
+    if (strcmp(args[1], "--help") == 0) return help_create();
     	
     if (strcmp(args[1], "-f") == 0) {
-		if (args[2] == NULL) {
-			print_invalid_usage();
-	        return;
-	    }
+		if (args[2] == NULL) return print_invalid_usage();
+	    
 		const char* filename = args[2];   //Tries to open the file in read/write mode
 	    FILE* fp = fopen(filename, "w+");
-	    if (!fp) {
-	        perror("Imposible to create file");
-	        return;
-	    }
+	    if (!fp) 
+	        return perror("Imposible to create file");
+	    
 	    fclose(fp);
 	    return;
 	}
@@ -928,6 +933,7 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 		}
 		printf("Effective credential: %d (%s)\n", info->pw_uid, info->pw_name);	
 	}
+	else if (strcmp(args[1], "--help") == 0) return help_uid();
 	else if (strcmp(args[1], "-set") == 0) {	// Input is -set command
 		if (args[2] == NULL) { print_too_few_arguments(); return; }
 		
@@ -954,20 +960,47 @@ void cmd_envvar(char *args[], tShellState *ShellState) {
 		doShowEnvironment(ShellState->env, "env");
 		return;
 	}
-	if ((strcmp(args[1], "-show") == 0) && (args[2] == NULL)) {
-		doShowEnvironment(ShellState->env, "env");
-		return;
-	}
-	else {
-		int var_index;
-		if ((var_index = doSearchVariable(ShellState->env, args[2])) == -1) {
-			perror("envvar");
+	if (strcmp(args[1], "-show") == 0) {
+		if (args[2] == NULL) { 
+			doShowEnvironment(ShellState->env, "env");
 			return;
 		}
-		printVar(ShellState->env, args[2], var_index);
+		else {
+			int var_index;
+			if ((var_index = doSearchVariable(ShellState->env, args[2])) == -1) {
+				perror("Could not find variable in environment");
+				return;
+			}
+			printVarArg3(ShellState->env[var_index]);
+			printVarEnv(var_index);
+			printVarGetenv(args[2]);
+		}
+	}
+	else if (strcmp(args[1], "-change") == 0) {
+		if (!args[2] || !args[3] || !args[4]) { print_too_few_arguments(); return; }
+		if (args[2][0] != '-') { print_invalid_usage(); return; }
+		else switch(args[2][1]) {
+			case 'a': return doChangeVar(ShellState->env, args[3], args[4]);
+			case 'e': return doChangeVar(environ, args[3], args[4]);;
+			case 'p': return doChangeVarPutenv(args[3], args[4]);
+			default: return print_invalid_args(args[2]);
+		}
 	}
 }
 
+void cmd_showenv(char *args[], tShellState *ShellState) {
+	if (args[1] != NULL) {
+		if (strcmp(args[1], "-environ") == 0)
+			doShowEnvironment(environ, "environ");
+		else if (strcmp(args[1], "-addr") == 0) {
+			printf("environ:\t%p (stored in %p)\n"
+					"main arg3:\t%p (stored in %p)\n",
+					environ, &environ,
+					ShellState->env, &ShellState->env);
+		}
+	}
+	else doShowEnvironment(ShellState->env, "env");
+}
 
 
 
@@ -1228,56 +1261,56 @@ void help_shared() {
 void help_free() {
 	printf("\nfree - Deallocate memory block and update blocks list.\n"
 		"\n'free [ADDR]'\n"
-		"\tADDR - Address of block to free\n"
+			"\tADDR - Address of block to free\n"
 		);
 }
 void help_memfill() {
 	printf("\nmemfill - Fill memory with some character\n"
 		"\n'memfill [ADDR] [COUNT] [CH]'\n"
-		"\tADDR - Starting address to fill\n"
-		"\tCOUNT - Amount of bytes to fill\n"
-		"\tCH - Character to fill with\n"
+			"\tADDR - Starting address to fill\n"
+			"\tCOUNT - Amount of bytes to fill\n"
+			"\tCH - Character to fill with\n"
 		);
 }
 void help_memdump() {
 	printf("\nmemdump - Dumps contents at some address to screen.\n"
 		"\n'memdump [ADDR] [COUNT]'\n"
-		"\tADDR - Address of memory at which contents are located\n"
-		"\tCOUNT - Amount of bytes to dump to screen\n"
+			"\tADDR - Address of memory at which contents are located\n"
+			"\tCOUNT - Amount of bytes to dump to screen\n"
 		);
 }
 void help_mem() {
     printf("\nmem - Print addresses of different elements.\n"
     	"\n'mem [OPTION]'\n"
-    	"\t-funcs\tPrint addresses of 3 program functions and 3 library functions.\n"
-    	"\t-vars\tPrint the addresses of 3 external, 3 external initialized, 3 static, 3 static initialized and 3 automatic variables.\n"
-    	"\t-blocks\tPrint the list of allocated blocks (smalloc, shared and pmap).\n"
-    	"\t-all\tPrint all of above.\n"
-    	"\t-pmap\tShow output of command pmap for shell's process.\n"
+    		"\t-funcs\tPrint addresses of 3 program functions and 3 library functions.\n"
+    		"\t-vars\tPrint the addresses of 3 external, 3 external initialized, 3 static, 3 static initialized and 3 automatic variables.\n"
+    		"\t-blocks\tPrint the list of allocated blocks (smalloc, shared and pmap).\n"
+    		"\t-all\tPrint all of above.\n"
+    		"\t-pmap\tShow output of command pmap for shell's process.\n"
     	);
 }
 void help_readfile() {
     printf("\nreadfile - Read from a file.\n"
     "\n'readfile [PATH] [ADDR] [COUNT]'\n"
-    "\tPATH - File to be read.\n"
-    "\tADDR - Address of memory where to read.\n"
-    "\tCOUNT - Amount of BYTES to read.\n"
+    	"\tPATH - File to be read.\n"
+    	"\tADDR - Address of memory where to read.\n"
+    	"\tCOUNT - Amount of BYTES to read.\n"
     );
 }
 void help_writefile() {
     printf("\nwritefile - Write to a file.\n"
     "\n'writefile [PATH] [ADDR] [COUNT]'\n"
-    "\tPATH - File to be written.\n"
-    "\tADDR - Address of memory where to write.\n"
-    "\tCOUNT - Amount of BYTES to write.\n"
+    	"\tPATH - File to be written.\n"
+    	"\tADDR - Address of memory where to write.\n"
+    	"\tCOUNT - Amount of BYTES to write.\n"
     );
 }
 void help_read() {
     printf("\nread - Read from a file.\n"
     "\n'read [FD] [ADDR] [COUNT]'\n"
-    "\tFD - File descriptor of (already opened) file to be read.\n"
-    "\tADDR - Address of memory where to read.\n"
-    "\tCOUNT - Amount of BYTES to read.\n"
+    	"\tFD - File descriptor of (already opened) file to be read.\n"
+    	"\tADDR - Address of memory where to read.\n"
+    	"\tCOUNT - Amount of BYTES to read.\n"
     );
 }
 void help_write() {
@@ -1295,8 +1328,17 @@ void help_recurse() {
 	    );
 }
 void help_uid() {
+	printf("\nuid - Show or set process's credentials (real and effective)\n"
+	    "\n'uid [OPTIONS] [VALUE]'\n"
+	    	"\t-get\tShow process's credentials\n"
+	    	"\t-set\tSet process's credentials\n"
+	    		"\t\t-l\tSet process loginame to VALUE (must be string)\n"
+	    		"\t\tno further option sets UID to VALUE (must be integer)\n"
+	    );
 }
 void help_envvar() {
+}
+void help_showenv() {
 }
 
 
