@@ -1,2 +1,2 @@
 TO DO:
-    - Properly set off for open files list
+    - Apply use of errno for own functions?
