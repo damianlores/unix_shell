@@ -237,8 +237,7 @@ void *stringToPointer (char *s) {
 	return p;
 }
 
-ssize_t readFile(char *f, void *p, size_t cont)
-{
+ssize_t readFile(char *f, void *p, size_t cont) {
     struct stat s;
     ssize_t n;  
     int df,aux;
