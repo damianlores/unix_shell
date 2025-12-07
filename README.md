@@ -1,2 +1,3 @@
 TO DO:
-    - doChangeVarPutenv
+    - Finish printlistP
+    - cmd_jobs
