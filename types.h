@@ -45,11 +45,6 @@ typedef struct {
     .key = -1 \
 }
 
-// Definition of item of process signal dispatch table 
-typedef struct signal {
-	const char* name;
-    int status;
-} tProcSignal;
 // ADT of process list item
 typedef struct {
     uid_t uid;

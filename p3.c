@@ -31,8 +31,7 @@ int main(int envc, char* argv[], char* env[]) {
 		char input[MAX_INPUT]; // MAX_INPUT = 255 B
 		printPrompt();
 		if (!inputRead(input)) {
-		        printf("\nExiting shell...\n");
-		        exit(0);
+		        cmd_exit(argv, &ShellState);
 		}
 		inputProcess(input,&ShellState);
 	}

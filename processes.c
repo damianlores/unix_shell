@@ -2,18 +2,108 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
 #include "processes.h"
 #include "types.h"
 #include "limits.h"
 
-tProcSignal proc_signals[] = {
+
+static struct signal procstatus[] = {
     {"FINISHED", FINISHED},
     {"STOPPED", STOPPED},
     {"SIGNALED", SIGNALED},
     {"ACTIVE", ACTIVE},
     {NULL, -1}
 };
+// This functions allow us to obtain the name of a signal out of its value and viceversa
+static struct signal sigstrnum[] = {   
+	{"HUP", SIGHUP},
+	{"INT", SIGINT},
+	{"QUIT", SIGQUIT},
+	{"ILL", SIGILL}, 
+	{"TRAP", SIGTRAP},
+	{"ABRT", SIGABRT},
+	{"IOT", SIGIOT},
+	{"BUS", SIGBUS},
+	{"FPE", SIGFPE},
+	{"KILL", SIGKILL},
+	{"USR1", SIGUSR1},
+	{"SEGV", SIGSEGV},
+	{"USR2", SIGUSR2}, 
+	{"PIPE", SIGPIPE},
+	{"ALRM", SIGALRM},
+	{"TERM", SIGTERM},
+	{"CHLD", SIGCHLD},
+	{"CONT", SIGCONT},
+	{"STOP", SIGSTOP},
+	{"TSTP", SIGTSTP}, 
+	{"TTIN", SIGTTIN},
+	{"TTOU", SIGTTOU},
+	{"URG", SIGURG},
+	{"XCPU", SIGXCPU},
+	{"XFSZ", SIGXFSZ},
+	{"VTALRM", SIGVTALRM},
+	{"PROF", SIGPROF},
+	{"WINCH", SIGWINCH}, 
+	{"IO", SIGIO},
+	{"SYS", SIGSYS},
+// Signals which are not present everywhere
+#ifdef SIGPOLL
+	{"POLL", SIGPOLL},
+#endif
+#ifdef SIGPWR
+	{"PWR", SIGPWR},
+#endif
+#ifdef SIGEMT
+	{"EMT", SIGEMT},
+#endif
+#ifdef SIGINFO
+	{"INFO", SIGINFO},
+#endif
+#ifdef SIGSTKFLT
+	{"STKFLT", SIGSTKFLT},
+#endif
+#ifdef SIGCLD
+	{"CLD", SIGCLD},
+#endif
+#ifdef SIGLOST
+	{"LOST", SIGLOST},
+#endif
+#ifdef SIGCANCEL
+	{"CANCEL", SIGCANCEL},
+#endif
+#ifdef SIGTHAW
+	{"THAW", SIGTHAW},
+#endif
+#ifdef SIGFREEZE
+	{"FREEZE", SIGFREEZE},
+#endif
+#ifdef SIGLWP
+	{"LWP", SIGLWP},
+#endif
+#ifdef SIGWAITING
+	{"WAITING", SIGWAITING},
+#endif
+ 	{NULL,-1},
+};
 
+
+int str_to_signal(char* signal) {
+	int i;
+	for (i = 0; sigstrnum[i].name != NULL; i++)
+	  	if (!strcmp(signal, sigstrnum[i].name))
+			return sigstrnum[i].signal;
+	return -1;
+}
+
+char* signal_to_str(int signal) {
+	int i;
+	for (i  =0 ; sigstrnum[i].name != NULL; i++)
+		if (signal == sigstrnum[i].signal)
+			return sigstrnum[i].name;
+	return ("SIGUNKNOWN");
+}
 void doShowEnvironment(char* env[], char* env_name) {
 	int i = 0;
 	while (env[i] != NULL) {
@@ -73,10 +163,25 @@ void doChangeVar(char* env[], char* var, char* value) {
 	strcat(aux, "=");
 	strcat(aux, value);
 	env[index] = aux;
+	printf("%s\n", aux);
 }
 
 void doChangeVarPutenv(char* var, char* value) {
-
+	/*char* aux;
+	if ((aux=(char *)malloc(strlen(var)+strlen(value)+2))==NULL) {
+		perror("malloc failed");
+		return;
+	}*/
+	char aux[CHAR_MAX];
+	strcpy(aux, var);
+	strcat(aux, "=");
+	strcat(aux, value);
+	if (putenv(aux) != 0) return perror("Could not allocate new environment");
+	printf("%s\n", aux);
 }
 
+void doExec(char* file, char* argv[]) {
+	if (execvp(file, argv) == -1)
+		return perror("execvp failure");
+}
 

@@ -284,6 +284,24 @@ bool createNodeP(tPosP *pos) {
 void createEmptyListP(tListP *L) {
     *L = NULL;
 }
+tItemP getItemP(tListP L, tPosP pos) {
+    return pos->data;
+}
+void clearListP(tListP *L) {
+    tPosP temp;
+    while (*L != LNULL) {
+        temp = *L;
+        *L = (*L) -> next;
+        free(temp);
+    }
+}
+tPosP firstP(tListP L) {
+	return L;
+}
+tPosP nextP(tListP L, tPosP pos) {
+    return pos -> next;
+}
+
 
 
 

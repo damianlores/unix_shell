@@ -181,7 +181,14 @@ void printListTypeM(tListM L, tMemType type) {
         pos = nextM(L, pos);
     }
 }
-
+void printListP(tListP L) {
+	tPosP pos = firstP(L);
+	tItemP process;
+	while (pos != LNULL) {
+		process = getItem(L, pos);
+		nextP(L, pos);
+	}
+}
 
 void concatPath (char* dest, const char* path, const char* addition) {
     if (addition[0] == '/') { 

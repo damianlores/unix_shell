@@ -3,6 +3,7 @@
 #include "shell.h"
 #include "types.h"
 #include "file_system.h"
+#include "processes.h"
 
 
 int sliceChain(char* chain, char *slices[])
@@ -47,7 +48,7 @@ void inputProcess(char* input, tShellState* ShellState) {
     }
 
     if (!cmd_dispatcher(args, ShellState)) {
-        printf("Invalid command.\n");
+        doExec(args[0], args+1);
     }
 
 }

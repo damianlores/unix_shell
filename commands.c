@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #include "commands.h"
 #include "types.h"
@@ -40,7 +41,6 @@ int g3 = 333;
 int ng1;
 int ng2;
 int ng3;
-
 
 
 tCommand commands[] = {
@@ -86,8 +86,11 @@ tCommand commands[] = {
     {"uid", cmd_uid},
     {"envvar", cmd_envvar},
     {"showenv", cmd_showenv},
+    {"fork", cmd_fork},
+    {"exec", cmd_exec},
     {NULL, NULL}
 };
+
 
     	
 void print_invalid_usage() { 
@@ -328,6 +331,8 @@ void cmd_exit(char *args[], tShellState *ShellState) {
     clearListH(&ShellState -> HistoricList);
     clearListF(&ShellState -> OFList);
     freeBlocks(&ShellState -> MemList);
+    clearListP(&ShellState -> ProcList);
+    printf("Ending shell...\n");
     exit(0);
 }
 
@@ -1024,9 +1029,29 @@ void cmd_showenv(char *args[], tShellState *ShellState) {
 	else return doShowEnvironment(ShellState->env, "env");
 }
 
+void cmd_fork(char *args[], tShellState *ShellState) {
+	if (args[1] != NULL && (strcmp(args[1],"--help") == 0))
+		return help_fork();
+	pid_t pid;
+	if ((pid = fork()) == 0) {
+		clearListP(&ShellState->ProcList);
+		printf("Executing process %d\n", getpid());
+	}
+	else if (pid != -1)
+		waitpid(pid, NULL, 0);
+}
 
+void cmd_exec(char *args[], tShellState *ShellState) {
+	if (args[1] == NULL) return print_invalid_usage(); 
+	if (strcmp(args[1],"--help") == 0) return help_exec();	
 
+	if (execvp(args[1], args+2) == -1)
+		return perror("execvp failure");
+}
 
+void cmd_jobs(char *args[], tShellState *ShellState) {
+	printListP(ShellState->ProcList);
+}
 
 
 
@@ -1083,6 +1108,8 @@ tHelp helps[] = {
     //P3 HELP FUNCTIONS
     {"uid", help_uid},
     {"envvar", help_envvar},
+    {"showenv", help_showenv},
+    {"fork", help_fork},
     {NULL,help_help},
 };
 void help_dispatcher(char *args) {
@@ -1350,19 +1377,39 @@ void help_recurse() {
 	    );
 }
 void help_uid() {
-	printf("\nuid - Show or set process's credentials (real and effective)\n"
+	printf("\nuid - Show or set process's credentials (real and effective).\n"
 	    "\n'uid [OPTIONS] [VALUE]'\n"
-	    	"\t-get\tShow process's credentials\n"
-	    	"\t-set\tSet process's credentials\n"
-	    		"\t\t-l\tSet process loginame to VALUE (must be string)\n"
-	    		"\t\tno further option sets UID to VALUE (must be integer)\n"
+	    	"\t-get\tShow process's credentials.\n"
+	    	"\t-set\tSet process's credentials.\n"
+	    		"\t\t-l\tSet process loginame to VALUE (must be string).\n"
+	    		"\t\tno further option sets UID to VALUE (must be integer).\n"
 	    );
 }
 void help_envvar() {
+	printf("\nenvvar - Change environment variable\n"
+	    "\n'envvar [OPTIONS] [VALUES]'\n"
+	    	"\t-show\tShow value and address of environment variable of name given.\n"
+	    	"\t-change\tSet environment variable of given name.\n"
+	    		"\t\t-a|-e|-p\tType of access (through arg3, enrivon or putenv function).\n"
+	    		"\t\t\tputenv accesses may create new variables if given was not found.\n"
+	    		"\t\t\targ3 and environ accesses shall not add new variables.\n"
+	    		"\t\tno further option sets UID to VALUE (must be integer).\n"
+	    );
 }
 void help_showenv() {
+	printf("\nshowenv - Show process's environment.\n"
+	    "\n'showenv [OPTION]'\n"
+	    	"\t-environ\tShow environment accessed throught environ.\n"
+	    	"\t-addr\tShow value of environ and arg3, as pointers, and their addresses.\n"
+	    	"\tno option set shows environemnt accessed by main's third arg'"
+	    );
 }
+void help_fork() {
 
+}
+void help_exec() {
+
+}
 
 
 

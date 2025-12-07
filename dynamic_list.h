@@ -67,7 +67,8 @@ tPosM nextM (tListM L, tPosM pos);
 
 // 	PROCESSES LIST
 void createEmptyListP(tListP *L);
-bool insertItemP(tListP *L, tItemP item);
+bool insertItemP(tListP* L, tItemP item);
+void clearListP(tListP* L);
 tItemP getItemP(tListP L, tPosP pos);
 // tPosP findItemP(tListP L, );
 void deleteAtPosP(tListP *L, tPosP pos);

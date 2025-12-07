@@ -20,10 +20,12 @@ void printListF(tListF L);
 // Memory
 void printListM(tListM L);
 void printListTypeM(tListM L, tMemType type);
+// Processes
+void printListP(tListP L);
 
 void print_dir(char* path , tDirParams activeParams);
 void print_file(char* path, tDirParams activeParams);
-void delete_dir(char* args);
+void delete_dir(char* path);
 
 
 

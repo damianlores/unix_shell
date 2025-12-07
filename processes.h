@@ -1,7 +1,6 @@
 #ifndef PROCESSES_H
 #define PROCESSES_H
 
-#include <sys/types.h>
 #include "types.h"
 
 #define FINISHED 0
@@ -9,7 +8,18 @@
 #define SIGNALED 2
 #define ACTIVE 3
 
+#define ARGS_MAX 16
+
 extern char** environ;
+
+// Definition of item of process signal dispatch table 
+struct signal {
+	char* name;
+    int signal;
+};
+
+char* signal_to_str(int signal);
+int str_to_signal(char* signal);
 
 void doShowEnvironment(char* env[], char* env_name);
 int doSearchVariable(char* env[], char* var_name);
@@ -18,5 +28,6 @@ void printVarEnv(int index);
 void printVarGetenv(char* val);
 void doChangeVar(char* env[], char* var, char* value);
 void doChangeVarPutenv(char* var, char* value);
+void doExec(char* file, char* argv[]);
 
 #endif
