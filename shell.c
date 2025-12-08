@@ -15,6 +15,8 @@ int sliceChain(char* chain, char *slices[])
     while ((slices[i]=strtok(NULL," \n\t"))!=NULL)
         i++;
     return i;
+
+
 }
 
 void printPrompt() {
@@ -48,7 +50,7 @@ void inputProcess(char* input, tShellState* ShellState) {
     }
 
     if (!cmd_dispatcher(args, ShellState)) {
-        doExec(args[0], args+1);
+        doExec(args[0], args+1, ShellState);
     }
 
 }

@@ -47,18 +47,18 @@ typedef struct {
 
 // ADT of process list item
 typedef struct {
-    uid_t uid;
-    time_t launch_time;
-    int signal;
-    char command[CHAR_MAX];
+    pid_t pid;
+    char launch_time[TIME_BUFFER_MAX];
+    int status;
     int priority;
+    char command[CHAR_MAX];
 } tItemP;
 #define DEFAULT_ITEM_P (tItemP){ \
-    .uid = -1, \
-    .launch_time = -1, \
+    .pid = -1, \
+    .launch_time = "", \
     .status = ACTIVE, \
-    .command = "", \
     .priority = -1, \
+    .command = "", \
 }
 
 

@@ -196,7 +196,7 @@ void createEmptyListM(tListM *L) {
     *L = NULL;
 }
 bool insertItemM(tListM *L, tItemM item) {
-    struct tNodeM *temp;
+    tPosM temp;
 
     if (!createNodeM(&temp)) return false;
 
@@ -284,8 +284,28 @@ bool createNodeP(tPosP *pos) {
 void createEmptyListP(tListP *L) {
     *L = NULL;
 }
+bool insertItemP(tListP *L, tItemP item) {
+    tPosP temp, pos;
+    
+    if (!createNodeP(&temp)) return false;
+    
+	temp->data = item;
+	temp->next = LNULL;
+	
+    if(*L == LNULL) {
+        *L = temp;
+    }
+    else {
+        for (pos = *L; pos->next != LNULL; pos = pos->next);
+        pos->next = temp;
+    }
+    return true;
+}
 tItemP getItemP(tListP L, tPosP pos) {
     return pos->data;
+}
+void deleteAtPosP(tListP* L, tPosP pos) {
+
 }
 void clearListP(tListP *L) {
     tPosP temp;

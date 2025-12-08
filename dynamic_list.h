@@ -70,10 +70,8 @@ void createEmptyListP(tListP *L);
 bool insertItemP(tListP* L, tItemP item);
 void clearListP(tListP* L);
 tItemP getItemP(tListP L, tPosP pos);
-// tPosP findItemP(tListP L, );
 void deleteAtPosP(tListP *L, tPosP pos);
-// tPosM findItemItemP(tListP L, );
-tPosM firstP(tListP L);
-tPosM nextP(tListP L, tPosP pos);
+tPosP firstP(tListP L);
+tPosP nextP(tListP L, tPosP pos);
 
 #endif

@@ -20,6 +20,8 @@ struct signal {
 
 char* signal_to_str(int signal);
 int str_to_signal(char* signal);
+char* status_to_str(int status);
+int str_to_status(char* status);
 
 void doShowEnvironment(char* env[], char* env_name);
 int doSearchVariable(char* env[], char* var_name);
@@ -28,6 +30,8 @@ void printVarEnv(int index);
 void printVarGetenv(char* val);
 void doChangeVar(char* env[], char* var, char* value);
 void doChangeVarPutenv(char* var, char* value);
-void doExec(char* file, char* argv[]);
+void doExec(char* file, char* argv[], tShellState* ShellState);
+void doDeleteTerminatedProcesses();
+void doDeleteSignaledProcesses();
 
 #endif

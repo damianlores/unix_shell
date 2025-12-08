@@ -4,9 +4,14 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <limits.h>
+#include <time.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
 #include "processes.h"
 #include "types.h"
-#include "limits.h"
+#include "dynamic_list.h"
+
 
 
 static struct signal procstatus[] = {
@@ -96,7 +101,6 @@ int str_to_signal(char* signal) {
 			return sigstrnum[i].signal;
 	return -1;
 }
-
 char* signal_to_str(int signal) {
 	int i;
 	for (i  =0 ; sigstrnum[i].name != NULL; i++)
@@ -104,6 +108,21 @@ char* signal_to_str(int signal) {
 			return sigstrnum[i].name;
 	return ("SIGUNKNOWN");
 }
+int str_to_status(char* status) {
+	int i;
+	for (i = 0; procstatus[i].name != NULL; i++)
+	  	if (!strcmp(status, procstatus[i].name))
+			return procstatus[i].signal;
+	return -1;
+}
+char* status_to_str(int status) {
+	int i;
+	for (i  =0 ; procstatus[i].name != NULL; i++)
+		if (status == procstatus[i].signal)
+			return procstatus[i].name;
+	return ("STATUKNOWN");
+}
+
 void doShowEnvironment(char* env[], char* env_name) {
 	int i = 0;
 	while (env[i] != NULL) {
@@ -180,8 +199,58 @@ void doChangeVarPutenv(char* var, char* value) {
 	printf("%s\n", aux);
 }
 
-void doExec(char* file, char* argv[]) {
+void doExec(char* file, char* argv[], tShellState* ShellState) {
+	int i = 0;
+	pid_t PID;
+	
+	if (argv[i] != NULL) {
+		while (argv[i+1] != NULL) i++;
+		
+		if (strcmp(argv[i], "&") == 0) {	// Execution in background
+
+			if ((PID = fork()) == 0) {		// If PID == 0 we are working in the child process
+		        if(execvp(file, argv) == -1) {
+		            perror("Cannot execute program");
+		            exit(EXIT_FAILURE);
+		        }
+        }
+		    else {							// PID not 0 is the value of the pid of the child process
+		    								// but it is returned in the parent process
+		    	time_t raw_time = time(NULL);
+				struct tm *tm_info;
+				char time_buffer[TIME_BUFFER_MAX];
+				tm_info = localtime(&raw_time); 
+				strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y, %H:%M:%S", tm_info);
+				
+				int i = 0;
+				char command[CHAR_MAX];
+				snprintf(command, CHAR_MAX, "%s", file);
+				while (argv[i] != NULL) {
+					strcat(command, " ");
+					strcat(command, argv[i]);
+					i++;
+				}
+		    	tItemP process = DEFAULT_ITEM_P;
+		    	strcpy(process.command, command);					// set command
+		    	process.pid = PID;									// set pid
+		    	strcpy(process.launch_time, time_buffer);			// set time
+		    	process.priority = getpriority(PRIO_PROCESS, PID);	// set priority
+		    	
+		    	insertItemP(&ShellState->ProcList, process);		// insert item
+		    	
+		        waitpid(PID, NULL, WNOHANG);
+		        return;
+		    }
+		}
+	}
 	if (execvp(file, argv) == -1)
-		return perror("execvp failure");
+		return perror("Not executed");
+}
+
+void doDeleteTerminatedProcesses() {
+
+}
+void doDeleteSignaledProcesses() {
+
 }
 

@@ -88,6 +88,8 @@ tCommand commands[] = {
     {"showenv", cmd_showenv},
     {"fork", cmd_fork},
     {"exec", cmd_exec},
+    {"jobs", cmd_jobs},
+    {"del_jobs", cmd_deljobs},
     {NULL, NULL}
 };
 
@@ -1050,7 +1052,16 @@ void cmd_exec(char *args[], tShellState *ShellState) {
 }
 
 void cmd_jobs(char *args[], tShellState *ShellState) {
+	if ( (args[1] != NULL) && (strcmp(args[1], "--help") == 0) ) return help_jobs();
 	printListP(ShellState->ProcList);
+}
+
+void cmd_deljobs(char *args[], tShellState *ShellState) {
+	if (args[1] == NULL) return printListP(ShellState->ProcList);
+	if (strcmp(args[1], "--help")) return help_deljobs();
+	if (strcmp(args[1], "-term")) return doDeleteTerminatedProcesses();
+	if (strcmp(args[1], "-sig")) return doDeleteSignaledProcesses();
+	print_invalid_args(args[1]);
 }
 
 
@@ -1110,6 +1121,8 @@ tHelp helps[] = {
     {"envvar", help_envvar},
     {"showenv", help_showenv},
     {"fork", help_fork},
+    {"jobs", help_jobs},
+    {"deljobs", help_deljobs},
     {NULL,help_help},
 };
 void help_dispatcher(char *args) {
@@ -1408,6 +1421,12 @@ void help_fork() {
 
 }
 void help_exec() {
+
+}
+void help_jobs() {
+
+}
+void help_deljobs() {
 
 }
 

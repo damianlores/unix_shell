@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include "file_system.h"
 #include "dynamic_list.h"
+#include "processes.h"
 #include "types.h"
 
 
@@ -185,8 +186,15 @@ void printListP(tListP L) {
 	tPosP pos = firstP(L);
 	tItemP process;
 	while (pos != LNULL) {
-		process = getItem(L, pos);
-		nextP(L, pos);
+		process = getItemP(L, pos);
+		printf("%-8d p=%-3d %-s %-s %-s\n", 
+				process.pid,
+				process.priority,
+				process.launch_time,
+				status_to_str(process.status),
+				process.command
+				);
+		pos = nextP(L, pos);
 	}
 }
 
