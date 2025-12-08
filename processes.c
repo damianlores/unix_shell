@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <limits.h>
 #include <time.h>
-#include <sys/resource.h>
 #include <sys/wait.h>
 #include "processes.h"
 #include "types.h"
@@ -234,7 +233,6 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 		    	strcpy(process.command, command);					// set command
 		    	process.pid = PID;									// set pid
 		    	strcpy(process.launch_time, time_buffer);			// set time
-		    	process.priority = getpriority(PRIO_PROCESS, PID);	// set priority
 		    	
 		    	insertItemP(&ShellState->ProcList, process);		// insert item
 		    	

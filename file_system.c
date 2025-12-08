@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/resource.h>
 #include "file_system.h"
 #include "dynamic_list.h"
 #include "processes.h"
@@ -185,11 +186,16 @@ void printListTypeM(tListM L, tMemType type) {
 void printListP(tListP L) {
 	tPosP pos = firstP(L);
 	tItemP process;
+	int priority;
+	struct passwd* p;
 	while (pos != LNULL) {
 		process = getItemP(L, pos);
-		printf("%-8d p=%-3d %-s %-s %-s\n", 
+		priority = getpriority(PRIO_PROCESS, process.pid);
+		p = getpwuid(getuid());
+		printf("%-6d %-s p=%-d %-s %-s %-s\n", 
 				process.pid,
-				process.priority,
+				p->pw_name,
+				priority,
 				process.launch_time,
 				status_to_str(process.status),
 				process.command
