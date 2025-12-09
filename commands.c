@@ -1053,6 +1053,43 @@ void cmd_exec(char *args[], tShellState *ShellState) {
 
 void cmd_jobs(char *args[], tShellState *ShellState) {
 	if ( (args[1] != NULL) && (strcmp(args[1], "--help") == 0) ) return help_jobs();
+	
+	tPosP pos = firstP(ShellState->ProcList);
+	tItemP process;
+	int result;
+	
+	while (pos != LNULL) {
+		process = getItemP(ShellState->ProcList, pos);
+		if (process.status == FINISHED) {
+			pos = nextP(ShellState->ProcList, pos);
+			continue;
+		}
+		
+		result = waitpid(process.pid, &process.signal, WNOHANG);
+		
+		if (result == 0) {
+            // Process is still running and state has not changed.
+            // Move to next.
+        } else if (result == -1) {
+            process.status = FINISHED;
+        } else {
+			if (WIFEXITED(process.signal)) {
+				process.status = FINISHED;
+				process.signal = WEXITSTATUS(process.signal);
+			} else if (WIFSIGNALED(process.signal)) {
+				process.status = FINISHED;
+				process.signal = WTERMSIG(process.signal);
+			} else if (WIFSTOPPED(process.signal)) {
+				process.status = STOPPED;
+				process.signal = WSTOPSIG(process.signal);
+			} else if (WIFCONTINUED(process.signal)) {
+		        process.status = ACTIVE;
+		        process.signal = SIGCONT;
+		    } else process.status = process.signal = -1;
+		}
+		updateItemP(&ShellState->ProcList, pos, process);
+		pos = nextP(ShellState->ProcList, pos);
+	}
 	printListP(ShellState->ProcList);
 }
 

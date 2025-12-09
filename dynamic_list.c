@@ -307,6 +307,17 @@ tItemP getItemP(tListP L, tPosP pos) {
 void deleteAtPosP(tListP* L, tPosP pos) {
 
 }
+tPosP findItemP (tListP L, int pid) {
+    tPosP pos = L;
+    if (L == LNULL)	return LNULL;
+    while (pos != LNULL && pos->data.pid != pid)
+        pos = pos->next;
+        
+    return pos;
+}
+void updateItemP(tListP *L, tPosP pos, tItemP item) {
+	pos->data = item;
+}
 void clearListP(tListP *L) {
     tPosP temp;
     while (*L != LNULL) {

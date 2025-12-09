@@ -233,10 +233,10 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 		    	strcpy(process.command, command);					// set command
 		    	process.pid = PID;									// set pid
 		    	strcpy(process.launch_time, time_buffer);			// set time
+		        waitpid(PID, &process.signal, WNOHANG);				// set signal value
 		    	
 		    	insertItemP(&ShellState->ProcList, process);		// insert item
 		    	
-		        waitpid(PID, NULL, WNOHANG);
 		        return;
 		    }
 		}

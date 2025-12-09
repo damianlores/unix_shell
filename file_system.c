@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/resource.h>
+#include <signal.h>
 #include "file_system.h"
 #include "dynamic_list.h"
 #include "processes.h"
@@ -192,12 +193,14 @@ void printListP(tListP L) {
 		process = getItemP(L, pos);
 		priority = getpriority(PRIO_PROCESS, process.pid);
 		p = getpwuid(getuid());
-		printf("%-6d %-s p=%-d %-s %-s %-s\n", 
+        
+		printf("%-6d %-s p=%-d %-s %-s (%-s) %-s\n", 
 				process.pid,
 				p->pw_name,
 				priority,
 				process.launch_time,
 				status_to_str(process.status),
+				signal_to_str(process.signal),
 				process.command
 				);
 		pos = nextP(L, pos);

@@ -50,12 +50,14 @@ typedef struct {
     pid_t pid;
     char launch_time[TIME_BUFFER_MAX];
     int status;
+    int signal;
     char command[CHAR_MAX];
 } tItemP;
 #define DEFAULT_ITEM_P (tItemP){ \
     .pid = -1, \
     .launch_time = "", \
     .status = ACTIVE, \
+    .signal = -1, \
     .command = "", \
 }
 
