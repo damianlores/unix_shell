@@ -206,7 +206,6 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 		while (argv[i+1] != NULL) i++;
 		
 		if (strcmp(argv[i], "&") == 0) {	// Execution in background
-
 			if ((PID = fork()) == 0) {		// If PID == 0 we are working in the child process
 		        if(execvp(file, argv) == -1) {
 		            perror("Cannot execute program");
@@ -225,6 +224,10 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 				char command[CHAR_MAX];
 				snprintf(command, CHAR_MAX, "%s", file);
 				while (argv[i] != NULL) {
+					if (argv[i][0] == '&') {
+						i++;
+						continue;
+					}
 					strcat(command, " ");
 					strcat(command, argv[i]);
 					i++;
