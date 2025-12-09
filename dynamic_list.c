@@ -207,7 +207,7 @@ bool insertItemM(tListM *L, tItemM item) {
     return true;
 }
 void deleteAtPosM(tListM *L, tPosM pos) {
-    // PRECD: if (L==LNULL) return;
+    // PRECD: list is NOT empty
     tPosM current = *L;
     tPosM prev = LNULL;
 
@@ -305,7 +305,20 @@ tItemP getItemP(tListP L, tPosP pos) {
     return pos->data;
 }
 void deleteAtPosP(tListP* L, tPosP pos) {
+    // PRECD: list is NOT empty
+    tPosP current = *L;
+    tPosP prev = LNULL;
 
+    while (current != LNULL) {
+        if (current == pos) {
+            if (prev == LNULL) *L = current->next;
+            else prev->next = current->next;
+            free(current);
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
 }
 tPosP findItemP (tListP L, int pid) {
     tPosP pos = L;

@@ -89,7 +89,7 @@ tCommand commands[] = {
     {"fork", cmd_fork},
     {"exec", cmd_exec},
     {"jobs", cmd_jobs},
-    {"del_jobs", cmd_deljobs},
+    {"deljobs", cmd_deljobs},
     {NULL, NULL}
 };
 
@@ -1095,9 +1095,9 @@ void cmd_jobs(char *args[], tShellState *ShellState) {
 
 void cmd_deljobs(char *args[], tShellState *ShellState) {
 	if (args[1] == NULL) return printListP(ShellState->ProcList);
-	if (strcmp(args[1], "--help")) return help_deljobs();
-	if (strcmp(args[1], "-term")) return doDeleteTerminatedProcesses();
-	if (strcmp(args[1], "-sig")) return doDeleteSignaledProcesses();
+	if (strcmp(args[1], "--help") == 0) return help_deljobs();
+	if (strcmp(args[1], "-term") == 0) return doDeleteTerminatedProcesses(&ShellState->ProcList);
+	if (strcmp(args[1], "-sig") == 0) return doDeleteSignaledProcesses(&ShellState->ProcList);
 	print_invalid_args(args[1]);
 }
 

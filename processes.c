@@ -254,10 +254,27 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
         waitpid(PID, NULL, WUNTRACED);
 }
 
-void doDeleteTerminatedProcesses() {
+void doDeleteTerminatedProcesses(tListP* L) {
+	tPosP aux, pos = firstP(*L);
+	tItemP process;
+	while (pos != NULL) {
+		process = getItemP(*L, pos);
+		if (process.status == FINISHED) aux = pos;
 
+		pos = nextP(*L, pos);
+		deleteAtPosP(L, aux);
+	}
 }
-void doDeleteSignaledProcesses() {
 
+void doDeleteSignaledProcesses(tListP* L) {
+	tPosP aux, pos = firstP(*L);
+	tItemP process;
+	while (pos != NULL) {
+		process = getItemP(*L, pos);
+		if (process.status == SIGNALED) aux = pos;
+
+		pos = nextP(*L, pos);
+		deleteAtPosP(L, aux);
+	}
 }
 

@@ -31,7 +31,7 @@ void printVarGetenv(char* val);
 void doChangeVar(char* env[], char* var, char* value);
 void doChangeVarPutenv(char* var, char* value);
 void doExec(char* file, char* argv[], tShellState* ShellState);
-void doDeleteTerminatedProcesses();
-void doDeleteSignaledProcesses();
+void doDeleteTerminatedProcesses(tListP* L);
+void doDeleteSignaledProcesses(tListP* L);
 
 #endif
