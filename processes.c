@@ -241,8 +241,14 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 		    }
 		}
 	}
-	if (execvp(file, argv) == -1)
-		return perror("Not executed");
+	// EXECUTION IN FOREGROUND
+	if ((PID = fork()) == 0) {
+	        if(execvp(file, argv) == -1) {
+	            perror("Cannot execute program");
+	            exit(EXIT_FAILURE);
+	        }
+    } else
+        waitpid(PID, NULL, WUNTRACED);
 }
 
 void doDeleteTerminatedProcesses() {

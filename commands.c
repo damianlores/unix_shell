@@ -1048,7 +1048,7 @@ void cmd_exec(char *args[], tShellState *ShellState) {
 	if (strcmp(args[1],"--help") == 0) return help_exec();	
 
 	if (execvp(args[1], args+2) == -1)
-		return perror("execvp failure");
+		return perror("Cannot execute program");
 }
 
 void cmd_jobs(char *args[], tShellState *ShellState) {
