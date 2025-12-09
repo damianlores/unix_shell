@@ -254,15 +254,52 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
         waitpid(PID, NULL, WUNTRACED);
 }
 
+void updateProcessList(tListP* L) {
+	tPosP pos = firstP(*L);
+	tItemP process;
+	int result;
+	
+	while (pos != LNULL) {
+		process = getItemP(*L, pos);
+		if (process.status == FINISHED) {	// Process has terminated -> no possible status update
+			pos = nextP(*L, pos);
+			continue;
+		}
+		result = waitpid(process.pid, &process.signal, WNOHANG);
+		if (result == 0) {
+            // process is ACTIVE and no status update report by waitpid -> next element
+        } else if (result == -1) {
+            process.status = FINISHED;
+        } else {
+			if (WIFEXITED(process.signal)) {
+				process.status = FINISHED;
+				process.signal = WEXITSTATUS(process.signal);
+			} else if (WIFSIGNALED(process.signal)) {
+				process.status = FINISHED;
+				process.signal = WTERMSIG(process.signal);
+			} else if (WIFSTOPPED(process.signal)) {
+				process.status = STOPPED;
+				process.signal = WSTOPSIG(process.signal);
+			} else if (WIFCONTINUED(process.signal)) {
+		        process.status = ACTIVE;
+		        process.signal = SIGCONT;
+		    } else process.status = process.signal = -1;
+		}
+		updateItemP(L, pos, process);
+		pos = nextP(*L, pos);
+	}
+}
+
 void doDeleteTerminatedProcesses(tListP* L) {
 	tPosP aux, pos = firstP(*L);
 	tItemP process;
 	while (pos != NULL) {
 		process = getItemP(*L, pos);
-		if (process.status == FINISHED) aux = pos;
-
+		aux = pos;
 		pos = nextP(*L, pos);
-		deleteAtPosP(L, aux);
+		if (process.status == FINISHED) {
+			deleteAtPosP(L, aux);
+		}
 	}
 }
 
