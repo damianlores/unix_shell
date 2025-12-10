@@ -976,8 +976,8 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 			// If no failure, set target UID
 			target_uid = info->pw_uid;
 		} else {
-		// No -l given, and entry not NULL -> set target UID normally
-		target_uid = strtol(args[2], NULL, 10);
+			// No -l given, and entry not NULL -> set target UID normally
+			target_uid = strtol(args[2], NULL, 10);
 		} 
 		if (setuid(target_uid) == -1)	// Set UID
 			perror("Could not set uid");

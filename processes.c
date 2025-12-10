@@ -184,12 +184,11 @@ void doChangeVar(char* env[], char* var, char* value) {
 }
 
 void doChangeVarPutenv(char* var, char* value) {
-	/*char* aux;
+	char* aux;
 	if ((aux=(char *)malloc(strlen(var)+strlen(value)+2))==NULL) {
 		perror("malloc failed");
 		return;
-	}*/
-	char aux[MAX_PATH];
+	}
 	strcpy(aux, var);
 	strcat(aux, "=");
 	strcat(aux, value);
