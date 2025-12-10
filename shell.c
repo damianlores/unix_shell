@@ -49,9 +49,8 @@ void inputProcess(char* input, tShellState* ShellState) {
         return;
     }
 
-    if (!cmd_dispatcher(args, ShellState)) {
+    if (!cmd_dispatcher(args, ShellState))
         doExec(args[0], args+1, ShellState);
-    }
 
 }
 

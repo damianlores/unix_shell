@@ -186,43 +186,41 @@ void cmd_date(char *args[], tShellState *ShellState) {
     bool show_date = false;
     bool show_time = false;
 
-    for (int i = 1; args[i] != NULL; i++) {
+    for (int i = 1; args[i] != NULL; i++)
         if (strcmp(args[i], "-d") == 0) show_date = true;
-        if (strcmp(args[i], "-t") == 0) show_time = true;
-        if (strcmp(args[1], "--help") == 0) return help_date();
-    }
+        else if (strcmp(args[i], "-t") == 0) show_time = true;
+        else if (strcmp(args[1], "--help") == 0) return help_date();
 
-    if (!show_date && !show_time) {
+    if (!show_date && !show_time)	// no args -> show both
         show_date = show_time = true;
-    }
 
-    if (show_date) printf("%s\n", date);
-    if (show_time) printf("%s\n", hour);
+    if (show_date) puts(date);
+    if (show_time) puts(hour);
 }
 
 void cmd_hour(char *args[], tShellState *ShellState) {
-	if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) return help_hour();
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_hour();
 	
     time_t t = time(NULL);
     struct tm *tm_read = localtime(&t);
     char time[9];
     strftime(time, sizeof(time), "%H:%M:%S", tm_read);
 
-    printf("%s\n", time);
+    puts(time);
 }
 
 void cmd_historic(char *args[], tShellState *ShellState) {
-    // Given n to the printLastNH function is -1 if no flags are received, as a result
-    // the whole list is printed.
-    if (args[1]==NULL) printLastNH(ShellState->HistoricList, -1);
+    /* Given n to the printLastNH function is -1 if no flags are received, as a result
+    	the whole list is printed. */
+    const ssize_t count = countH(ShellState->HistoricList);
+    if (args[1] == NULL) printLastNH(ShellState->HistoricList, -1);
     
     else if (strcmp(args[1], "--help") == 0) return help_historic();
-    
-    else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %ld\n", countH(ShellState->HistoricList));
-    
+    else if (strcmp(args[1],"-count")==0) printf("Historic number of commands: %ld\n", count);
     else if (strcmp(args[1],"-clear")==0) clearListH(&ShellState->HistoricList);
     
-    // If none of the other flags was a match, start parsing by char '-'
+    /* If none of the other flags was a match, start parsing by char '-'
+    	case -> show last nth historic commands */
     else if (args[1][0] == '-') {
         // Format: "-<number>"
         ssize_t n = (ssize_t)strtoul(args[1] + 1 /* this skips the '-' input*/ , NULL, 10);
@@ -233,17 +231,21 @@ void cmd_historic(char *args[], tShellState *ShellState) {
         }
         printLastNH(ShellState->HistoricList, n);
     }
-    else {
-        size_t id = strtoul(args[1], NULL, 10);
-        if (countH(ShellState->HistoricList) <= id) {
-        	errno = EFAULT;
-        	perror("Invalid input");
-        	return;
-        }
-            
-    // If every conditional was unsuccesful we can finally execute the n-th command of historic
-    tPosH temp = findItemH(ShellState->HistoricList,id);
-    inputProcess(getItemH(ShellState->HistoricList,temp).input, ShellState);
+    else {	// last case -> execute command n 
+		    size_t id = strtoul(args[1], NULL, 10);
+		    if (id >= count) {
+		    	errno = EFAULT;
+		    	perror("Invalid input");
+		    	return;
+		    }
+		// If every conditional was unsuccesful we can finally execute the n-th command of historic
+		tPosH temp = findItemH(ShellState->HistoricList, id);
+		char* input = getItemH(ShellState->HistoricList, temp).input;
+		if (strncmp(input, "historic", 8) == 0) {
+			errno = ENOTSUP;
+			perror("Infinite loop");
+		} else
+			inputProcess(input, ShellState);
     }
 }
 
