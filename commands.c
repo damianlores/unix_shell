@@ -127,7 +127,7 @@ void cmd_authors(char *args[], tShellState *ShellState) {
     	else if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) return help_authors();
     	else return print_invalid_usage();
 
-    if (!show_names && !show_logins)
+    if (!show_names && !show_logins)	// This means no option was set -> show both logins and names
         show_names = show_logins = true;
     if (show_names)
         for (int i = 0; i < 2; i++)
@@ -138,12 +138,14 @@ void cmd_authors(char *args[], tShellState *ShellState) {
 }
 
 void cmd_getpid(char *args[], tShellState *ShellState) {
-    if (args[1]==NULL) {
-        printf("Shell's pid %d\n", getpid());
-    } else if (strcmp(args[1],"-p")==0) {
-        printf("Shell's father pid: %d\n", getppid());
-    } else if (strcmp(args[1], "--help") == 0) return help_getpid();
-    else print_invalid_usage();
+    if (args[1] != NULL) {
+    	if (strcmp(args[1],"-p") == 0) { 
+    		printf("Shell's parent process pid: %d\n", getppid());
+    		return;
+    	}
+    	else if (strcmp(args[1], "--help") == 0) return help_getpid();
+    }
+    printf("Shell's process pid: %d\n", getpid());	// If given option is unknown stick to printing pid
 }
 
 void cmd_chdir(char *args[], tShellState *ShellState) {
