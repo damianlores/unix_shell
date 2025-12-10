@@ -426,15 +426,13 @@ void cmd_dir(char *args[], tShellState *ShellState) {
     //Show the curent directory if there are no args
     if (args[1] == NULL) {
         char path[MAX_PATH];
-        
        	if (getcwd(path, sizeof(path)) == NULL) return perror("Imposible to access directory");
-       	
         return print_dir(path, ShellState->dirParams);
     }
     
     if (strcmp(args[1], "--help") == 0) return help_dir();
     
-    //When the arg is -d
+    // When arg is -d (enter directories)
     if (strcmp(args[1], "-d") == 0) {
         if (args[2] == NULL) return print_invalid_usage();
         
@@ -447,45 +445,38 @@ void cmd_dir(char *args[], tShellState *ShellState) {
         }
         return;
     }
-    // Without -d
+    // Without -d (treat directories as files)
     for (int i = 1; args[i] != NULL; i++) {
         print_file(args[i], ShellState->dirParams);
     }
 }
-
 
 void cmd_erase(char *args[], tShellState *ShellState) {
     if (args[1] == NULL) return print_invalid_usage();
     if (strcmp(args[1], "--help") == 0) return help_erase();
     
     for (int i = 1; args[i] != NULL; i++) {
-        //Check if it is a directory
         if ( isDir(args[i]) ) {
-            //Removes only if empty
+            // Removes only if empty
             if (rmdir(args[i]) == -1)
                 perror(args[i]);
-            else {
+            else
                 printf("Directory %s deleted\n", args[i]);
-         	}
          	continue;   //Check the next argument
         }
-
         struct stat info;
-        
-        if (lstat(args[i], &info) == -1) {
+        if (lstat(args[i], &info) == -1) {	// Handle error if could not access file, then go to next entry
             perror(args[i]);
             continue;
         }
         else {
-        	if (info.st_size == 0) {
-        	//Deletes the empty file
-            	if (unlink(args[i]) == -1)
-                	perror(args[i]);
-	            else
-	            	printf("File %s deleted\n", args[i]);
-        	}
+        	if (info.st_size == 0)
+        	// Deletes the empty file
+            	if (unlink(args[i]) == -1) perror(args[i]);
+	            else printf("File %s deleted\n", args[i]);
         	else {
-        		printf("File is not empty\n");
+        		errno = ENOTEMPTY;
+        		perror(args[i]);
 			}        
         }
     }
