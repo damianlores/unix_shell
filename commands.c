@@ -19,7 +19,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <sys/wait.h>
-
 #include "commands.h"
 #include "types.h"
 #include "dynamic_list.h"
@@ -43,7 +42,7 @@ int ng2;
 int ng3;
 
 
-tCommand commands[] = {
+tCommand commands[] = { // List of available commands for dispatcher
     {"authors", cmd_authors},
     {"getpid", cmd_getpid},
     {"chdir", cmd_chdir},
@@ -93,19 +92,6 @@ tCommand commands[] = {
     {NULL, NULL}
 };
 
-
-    	
-void print_invalid_usage() { 
-	printf("Wrong usage. Run with '--help' to show help.\n");
-}
-void print_too_few_arguments() { 
-	printf("Too few arguments. Run with '--help' to show help.\n");
-}
-void print_invalid_args(char* args) { 
-	printf("Invalid arguments: %s\n", args);
-}
-
-
 bool cmd_dispatcher(char *args[], tShellState* ShellState) {
     for (size_t i = 0; commands[i].name != NULL; i++) {
         if (strcmp(args[0], commands[i].name) == 0) {
@@ -116,6 +102,11 @@ bool cmd_dispatcher(char *args[], tShellState* ShellState) {
     return false;
 }
 
+// Some default error printing messages
+void print_invalid_usage() { printf("Wrong usage. Run with '--help' to show help.\n"); }
+void print_too_few_arguments() { printf("Too few arguments. Run with '--help' to show help.\n"); }
+void print_invalid_arg(char* arg) { errno = EINVAL; perror(arg); }
+
 
 
 
@@ -125,25 +116,25 @@ bool cmd_dispatcher(char *args[], tShellState* ShellState) {
 
 
 void cmd_authors(char *args[], tShellState *ShellState) {
+	const char *names[] = {"Damián", "Marcos"};
+	const char* logins[] = {"d.lores@udc.es", "m.pazos2@udc.es"};
+	
     bool show_names = false, show_logins = false;
-    for (int i = 1; args[i]; i++) {
+    
+    for (int i = 1; args[i]; i++)
         if (strcmp(args[i], "-l") == 0) show_logins = true;
     	else if (strcmp(args[i], "-n") == 0) show_names = true;
     	else if ((args[1]!=NULL) && strcmp(args[1], "--help") == 0) return help_authors();
     	else return print_invalid_usage();
-    } 
+
     if (!show_names && !show_logins)
         show_names = show_logins = true;
-    if (show_logins) {
-    	const char* logins[] = {"d.lores@udc.es", "m.pazos2@udc.es"};
-        for (int i = 0; i < 2; i++)
-            puts(logins[i]);
-    }
-    if (show_names) {
-        const char *names[] = {"Damián", "Marcos"};
+    if (show_names)
         for (int i = 0; i < 2; i++)
             puts(names[i]);
-    }
+    if (show_logins)
+        for (int i = 0; i < 2; i++)
+            puts(logins[i]);
 }
 
 void cmd_getpid(char *args[], tShellState *ShellState) {
@@ -536,7 +527,7 @@ void cmd_lseek(char *args[], tShellState *ShellState) {
     
     ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
     
-    if (fd < 0) return print_invalid_args(args[1]);
+    if (fd < 0) return print_invalid_arg(args[1]);
     
     long off = strtol(args[2], NULL, 10);
     int where;   // Used like a reference point
@@ -544,7 +535,7 @@ void cmd_lseek(char *args[], tShellState *ShellState) {
     if (strcmp(args[3], "SEEK_SET") == 0) where = SEEK_SET;    //Offset from the beginning of the file
     else if (strcmp(args[3], "SEEK_CUR") == 0) where = SEEK_CUR;   //Offset from the current file position 
     else if (strcmp(args[3], "SEEK_END") == 0) where = SEEK_END;   // Offset from the end of the file
-    else return print_invalid_args(args[3]);
+    else return print_invalid_arg(args[3]);
     
     tPosF pos = findItemF(ShellState->OFList, fd);
     if (pos == LNULL) { printf("Descriptor %ld not found in open files list\n", fd); return; }
@@ -566,7 +557,7 @@ void cmd_writestr(char *args[], tShellState *ShellState) {
 	
     ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
     
-    if (fd < 0) return print_invalid_args(args[1]);
+    if (fd < 0) return print_invalid_arg(args[1]);
 
     //Initialization off an empty buffer
     char str[MAX_INPUT] = "";
@@ -715,7 +706,7 @@ void cmd_free(char *args[], tShellState *ShellState) {
     
     void *p = stringToPointer(args[1]);
     tPosM pos = findItemM(ShellState->MemList, p);
-    if (pos == LNULL) return print_invalid_args(args[1]);
+    if (pos == LNULL) return print_invalid_arg(args[1]);
     
     tItemM block = getItemM(ShellState->MemList, pos);
     
@@ -739,7 +730,7 @@ void cmd_memfill(char *args[], tShellState *ShellState) {
     if (!addr) return perror("Invalid pointer");
     
     ssize_t cont = (ssize_t)strtol(args[2], NULL, 10);
-    if (cont <= 0) return print_invalid_args(args[2]);
+    if (cont <= 0) return print_invalid_arg(args[2]);
     
     unsigned char ch = (unsigned char)args[3][0];
     
@@ -756,7 +747,7 @@ void cmd_memdump(char *args[], tShellState *ShellState) {
     if (!addr) return perror("Invalid pointer"); 
     
     ssize_t cont = (ssize_t)strtoul(args[2], NULL, 10);
-    if (cont <= 0) return print_invalid_args(args[2]);
+    if (cont <= 0) return print_invalid_arg(args[2]);
     
     unsigned char *paddr = (unsigned char *)addr; // Convert so we can iterate
 
@@ -818,7 +809,7 @@ void cmd_writefile(char* args[], tShellState* ShellState) {
     if (p == NULL) return perror("Invalid pointer");
 
     ssize_t cont = (ssize_t)strtol(args[2], NULL, 10);
-    if (cont <= 0) return print_invalid_args(args[2]);
+    if (cont <= 0) return print_invalid_arg(args[2]);
     
     ssize_t bytes_write = writeFile(args[0], p, cont);
     if (bytes_write == -1)
@@ -842,10 +833,10 @@ void cmd_read(char* args[], tShellState* ShellState) {
     void *p = stringToPointer(args[2]);
     if (!p) return perror("Invalid pointer");
     
-    if (!findItemM(ShellState->MemList, p)) return print_invalid_args(args[1]); 
+    if (!findItemM(ShellState->MemList, p)) return print_invalid_arg(args[1]); 
     
     ssize_t cont = (ssize_t)strtol(args[3], NULL, 10);
-    if (cont <= 0) return print_invalid_args(args[3]); 
+    if (cont <= 0) return print_invalid_arg(args[3]); 
 
     ssize_t bytes_read = read(fd, p, cont);
     if (bytes_read == -1) return perror("Error reading file"); 
@@ -859,7 +850,7 @@ void cmd_write(char* args[], tShellState* ShellState) {
     if(!args[2] || !args[3]) return print_too_few_arguments(); 
     
     ssize_t fd = (ssize_t)strtol(args[3], NULL, 10);
-    if (fd < 0) return print_invalid_args(args[1]); 
+    if (fd < 0) return print_invalid_arg(args[1]); 
     tPosF pos = findItemF(ShellState->OFList, fd);
     if (pos == LNULL) {
     	errno = ENOENT;
@@ -870,7 +861,7 @@ void cmd_write(char* args[], tShellState* ShellState) {
     if (!p) { perror("Invalid pointer"); return; }
     
     ssize_t cont = (ssize_t)strtol(args[3], NULL, 10);
-    if (cont <= 0) { print_invalid_args(args[3]); return; }
+    if (cont <= 0) { print_invalid_arg(args[3]); return; }
 
     ssize_t bytes_write = write(fd, p, cont);
     if (bytes_write == -1) return perror("Error writting file");
@@ -884,7 +875,7 @@ void cmd_recurse(char *args[], tShellState *ShellState) {
     if (strcmp(args[1], "--help") == 0) return help_recurse();
     
     ssize_t n = strtol(args[1], NULL, 10);
-    if (n <= 0) return print_invalid_args(args[1]); 
+    if (n <= 0) return print_invalid_arg(args[1]); 
 
     recursive(n);
 }
@@ -912,7 +903,7 @@ void cmd_shared(char *args[], tShellState *ShellState) {
 	   	key = (key_t) strtoul(args[2], NULL, 10);
 		size = (ssize_t) strtoul(args[3], NULL, 10);
 		
-		if (size<=0) return print_invalid_args(args[3]);
+		if (size<=0) return print_invalid_arg(args[3]);
 		
 		if ((p = doObtainMemoryShmget(&ShellState->MemList, key, size)) != NULL) {
 			printf ("Allocated %lu bytes in %p\n",(unsigned long) size, p);
@@ -985,7 +976,7 @@ void cmd_uid(char *args[], tShellState *ShellState) {
 			perror("Could not set uid");
 		return; // Return both on success and on error
 	}
-	else print_invalid_args(args[1]);
+	else print_invalid_arg(args[1]);
 }
 
 void cmd_envvar(char *args[], tShellState *ShellState) {
@@ -1011,7 +1002,7 @@ void cmd_envvar(char *args[], tShellState *ShellState) {
 			case 'a': return doChangeVar(ShellState->env, args[3], args[4]);
 			case 'e': return doChangeVar(environ, args[3], args[4]);;
 			case 'p': return doChangeVarPutenv(args[3], args[4]);
-			default: return print_invalid_args(args[2]);
+			default: return print_invalid_arg(args[2]);
 		}
 	}
 }
@@ -1065,7 +1056,7 @@ void cmd_deljobs(char *args[], tShellState *ShellState) {
 	if (strcmp(args[1], "--help") == 0) return help_deljobs();
 	if (strcmp(args[1], "-term") == 0) return doDeleteTerminatedProcesses(&ShellState->ProcList);
 	if (strcmp(args[1], "-sig") == 0) return doDeleteSignaledProcesses(&ShellState->ProcList);
-	print_invalid_args(args[1]);
+	print_invalid_arg(args[1]);
 }
 
 
