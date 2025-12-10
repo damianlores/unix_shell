@@ -18,14 +18,13 @@
 #include "types.h"
 
 
-void init_dir_params(tDirParams* dirParams) {
+void init_dir_params(tDirParams* dirParams) { // Initialization of default directory printing parameters
 	dirParams->long_format = false;
 	dirParams->link = false;
 	dirParams->show_hid = false;
 	dirParams->rec_mode = REC_OFF;
 }
-char letterTF(mode_t m)
-{
+char letterTF(mode_t m) { // help_code function
 	switch (m&S_IFMT) { // bit-by-bit AND bit with format bits, 0170000
     	case S_IFSOCK: return 's'; // socket
         case S_IFLNK: return 'l'; // symbolic link
@@ -37,10 +36,7 @@ char letterTF(mode_t m)
         default: return '?'; // unknown, should not appear
 	}
 }
-/*las siguientes funciones devuelven los permisos de un fichero en formato rwx----*/
-/*a partir del campo st_mode de la estructura stat */
-/*las tres son correctas pero usan distintas estrategias de asignación de memoria*/
-char* mode_to_str(mode_t m, char *permissions) {
+char* mode_to_str(mode_t m, char *permissions) { // help_code function
     strcpy (permissions,"---------- ");
     
     permissions[0]=letterTF(m);
@@ -331,10 +327,8 @@ void delete_dir(char* path) {
 	struct dirent *object; 
 	char object_path[MAX_PATH];
 	while ((object=readdir(dir))) {
-	
-		if (strcmp(object->d_name, ".") == 0 || strcmp(object->d_name, "..") == 0) {
-            continue;
-        }
+		// SKIP PARENT DIRECTORIES
+		if (strcmp(object->d_name, ".") == 0 || strcmp(object->d_name, "..") == 0) continue;
         
 		concatPath(object_path, path, object->d_name);
 		if (isDir(object_path)) {
