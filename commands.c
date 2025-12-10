@@ -149,25 +149,29 @@ void cmd_getpid(char *args[], tShellState *ShellState) {
 }
 
 void cmd_chdir(char *args[], tShellState *ShellState) {
-    if ((args[1] != NULL) && (strcmp(args[1], "--help") == 0)) return help_chdir();
-    
-    char cwd[PATH_MAX];
-    
-    if (getcwd(cwd, sizeof(cwd)) != NULL) printf("Current directory: %s\n", cwd);
-    
-    if (chdir(args[1]) == 0) {
-        char cwd[PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)) != NULL)
-            printf("%s\n", cwd);
-    } else perror(args[1]);
+	char cwd[PATH_MAX];
+	
+	if (args[1] == NULL) {	// No args means show working directory
+		if (getcwd(cwd, sizeof(cwd)) != NULL) printf("%s\n", cwd);
+		else perror("Could not get working directory path");
+	} else {
+		if ((strcmp(args[1], "--help") == 0)) return help_chdir();
+		
+		if (chdir(args[1]) == 0) {	// chdir returns 0 if success -> show target directory
+		    if (getcwd(cwd, sizeof(cwd)) != NULL)
+		        printf("%s\n", cwd);
+		} 
+		else perror(args[1]);
+    }
 }
 
 void cmd_getcwd(char *args[], tShellState *ShellState) {
-	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_getcwd();
-    char cwd[PATH_MAX];
+	char cwd[PATH_MAX];
 
-    if (getcwd(cwd, sizeof(cwd)) != NULL)
-        printf("Current directory: %s\n", cwd);
+	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_getcwd();
+    
+    if (getcwd(cwd, sizeof(cwd)) != NULL) printf("%s\n", cwd);
+    else perror("Could not get working directory path");
 }
 
 void cmd_date(char *args[], tShellState *ShellState) {
