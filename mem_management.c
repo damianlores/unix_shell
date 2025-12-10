@@ -1,8 +1,3 @@
-#include "types.h"
-#include "dynamic_list.h"
-#include "file_system.h"
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -14,10 +9,11 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <time.h>
-
+#include "types.h"
+#include "dynamic_list.h"
+#include "file_system.h"
 
 #define SIZE 1024
-
 
 
 void *doObtainMemoryShmget(tListM *memList, key_t key, size_t size) {
@@ -121,8 +117,7 @@ void *mapFile(char *filename, int protection, tListF *OFList, tListM *memList) {
     
     tOFilesItem itemF;
     itemF.fd = fd;
-    itemF.dup_of=-1;
-    snprintf(itemF.name, (7+PATH_MAX), "%s%s", "Map of ", filename);
+    snprintf(itemF.name, MAX_CHAR, "%s%s", "Map of ", filename);
     flags_to_str_arr(mode, itemF.mode);
     
     insertItemF(OFList, itemF);
@@ -139,7 +134,7 @@ void *mapFile(char *filename, int protection, tListF *OFList, tListM *memList) {
     strcpy(item.time, time_buffer);
     item.alloc_mode = MEM_MMAP;
     item.fd = fd;
-    snprintf(item.file, (PATH_MAX), "%s", filename);
+    snprintf(item.file, (MAX_PATH), "%s", filename);
     
     insertItemM(memList, item);
 /* Guardar en la lista    InsertarNodoMmap (&L,p, s.st_size,df,fichero); */

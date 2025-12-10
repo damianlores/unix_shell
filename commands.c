@@ -4,7 +4,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <limits.h>
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -149,7 +148,7 @@ void cmd_getpid(char *args[], tShellState *ShellState) {
 }
 
 void cmd_chdir(char *args[], tShellState *ShellState) {
-	char cwd[PATH_MAX];
+	char cwd[MAX_PATH];
 	
 	if (args[1] == NULL) {	// No args means show working directory
 		if (getcwd(cwd, sizeof(cwd)) != NULL) printf("%s\n", cwd);
@@ -166,7 +165,7 @@ void cmd_chdir(char *args[], tShellState *ShellState) {
 }
 
 void cmd_getcwd(char *args[], tShellState *ShellState) {
-	char cwd[PATH_MAX];
+	char cwd[MAX_PATH];
 
 	if ((args[1] != NULL) && strcmp(args[1], "--help") == 0) return help_getcwd();
     
@@ -251,7 +250,7 @@ void cmd_historic(char *args[], tShellState *ShellState) {
 
 void cmd_open(char *args[], tShellState* ShellState) {
 	// no args given -> list of open files
-    if (args[1] == NULL) { cmd_listopen(args, ShellState); return; }
+    if (args[1] == NULL) return printListF(ShellState->OFList);
 	// error if no open mode was input
     if (args[2] == NULL) { print_too_few_arguments(); return; }
 
@@ -263,8 +262,7 @@ void cmd_open(char *args[], tShellState* ShellState) {
 
     tOFilesItem item;
     item.fd = fd;
-    item.dup_of=-1;
-    snprintf(item.name, PATH_MAX, "%s", args[1]);
+    snprintf(item.name, sizeof(item.name), "%s", args[1]);
     flags_to_str_arr(mode, item.mode);
     
     if (insertItemF(&ShellState->OFList, item))
@@ -280,7 +278,7 @@ void cmd_close(char *args[], tShellState *ShellState) {
     if (strcmp(args[1], "--help") == 0) return help_close();
 
     ssize_t fd = (ssize_t)strtol(args[1], NULL, 10);
-    if (close(fd) == -1) return perror("Imposible to close descriptor'");
+    if (close(fd) == -1) return perror("Imposible to close descriptor");
 
     deleteAtPosF(&ShellState->OFList,
     	findItemF(ShellState->OFList, fd)); // No need to check if file descriptor exists as of thanks to beforehand close syscall
@@ -292,17 +290,19 @@ void cmd_dup(char *args[], tShellState *ShellState) {
 	if (strcmp(args[1], "--help") == 0) return help_dup();
 
     int newfd, oldfd = strtol(args[1], NULL, 10);
-    newfd = dup(oldfd);
     
+    newfd = dup(oldfd);
     if (newfd == -1) return perror("Imposible to make dup of descriptor");
 
-    tPosF pos = findItemF(ShellState->OFList, oldfd);
+    tPosF pos = findItemF(ShellState->OFList, oldfd);	// pos cannot be null as we check its existance with dup call
     tOFilesItem oldItem = getItemF(ShellState->OFList, pos);
+    // Copy info and set "duplicate of" name type
+    char oldname[sizeof(oldItem.name)-17]; // 17 = num of characters of "duplicate of " + '\0' + 3 extra characters (" ()")
+    strncpy(oldname, oldItem.name, sizeof(oldname));
     
     tOFilesItem newItem;
     newItem.fd = newfd;
-    newItem.dup_of = oldfd;
-    strcpy(newItem.name, oldItem.name);
+    snprintf(newItem.name, sizeof(newItem.name), "%s %d (%s)", "duplicate of", oldfd, oldname);
     copy_open_file_flags(newItem.mode, oldItem.mode);
 
     if (!insertItemF(&ShellState->OFList, newItem)) {
@@ -433,10 +433,9 @@ void cmd_getdirparams(char *args[], tShellState *ShellState) {
 }	
 
 void cmd_dir(char *args[], tShellState *ShellState) {
-
     //Show the curent directory if there are no args
     if (args[1] == NULL) {
-        char path[PATH_MAX];
+        char path[MAX_PATH];
         
        	if (getcwd(path, sizeof(path)) == NULL) return perror("Imposible to access directory");
        	

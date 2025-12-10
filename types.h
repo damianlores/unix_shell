@@ -1,11 +1,14 @@
 #ifndef TYPES_H
 #define TYPES_H 
 
-#include <limits.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <limits.h>
 
-#define FLAGS_MAX 7
+#define MAX_PATH 256
+#define MAX_CHAR 512
+#define MAX_FILENAME 32
+#define MAX_FLAGS 7
 #define TIME_BUFFER_MAX 25
 
 
@@ -18,9 +21,8 @@ typedef struct {
 // ADT of open files list item
 typedef struct {
     int fd;
-    int dup_of;
-    char name[NAME_MAX];
-    char* mode[FLAGS_MAX];
+    char name[MAX_CHAR];
+    char* mode[MAX_FLAGS];
 } tOFilesItem;
 
 // Definition of constants for mmap function
@@ -31,7 +33,7 @@ typedef struct {
     size_t size;
 	char time[TIME_BUFFER_MAX];
     tMemType alloc_mode;
-    char file[PATH_MAX];
+    char file[MAX_PATH];
     int fd;
     key_t key;
 } tItemM;
@@ -51,7 +53,7 @@ typedef struct {
     char launch_time[TIME_BUFFER_MAX];
     int status;
     int signal;
-    char command[CHAR_MAX];
+    char command[MAX_INPUT];
 } tItemP;
 #define DEFAULT_ITEM_P (tItemP){ \
     .pid = -1, \

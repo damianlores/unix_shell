@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 
 #include "types.h"
 #include "dynamic_list.h"
@@ -28,7 +27,7 @@ int main(int envc, char* argv[], char* env[]) {
 
 
 	while (1) {
-		char input[MAX_INPUT]; // MAX_INPUT = 255 B
+		char input[MAX_INPUT];
 		printPrompt();
 		if (!inputRead(input)) {
 		        cmd_exit(argv, &ShellState);

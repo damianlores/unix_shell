@@ -7,7 +7,6 @@
 #include <time.h>
 #include <pwd.h>
 #include <grp.h>
-#include <limits.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -128,9 +127,7 @@ void printListF(tListF L) {
     while (pos != NULL) {
     	item = getItemF(L, pos);
     	
-    	printf("descriptor: %d -> ", item.fd);
-        if (item.dup_of == -1) printf("%s", item.name);
-        else printf("duplicate of %d (%s)", item.dup_of, item.name);
+    	printf("descriptor: %d -> %s", item.fd, item.name);
         int i = 0;
         while (item.mode[i] != NULL) { printf(" %s", item.mode[i]); i++; }
         putchar('\n');
@@ -227,7 +224,7 @@ void print_dir(char* path, tDirParams activeParams) {
 	}
 	
 	struct dirent *object;
-	char object_path[PATH_MAX];
+	char object_path[MAX_PATH];
 	
 	if (activeParams.rec_mode == REC_BEFORE) {
 		while ((object = readdir(dir)) != NULL) {
@@ -286,7 +283,7 @@ void print_file(char* path, tDirParams activeParams) {
     	return;
     }
     
- 	char filename[NAME_MAX];
+ 	char filename[MAX_FILENAME];
 	strcpy(filename, getFilename(path));
  	
 	if (!activeParams.long_format) { 
@@ -316,8 +313,8 @@ void print_file(char* path, tDirParams activeParams) {
 			filename);
 	}
 	if (activeParams.link && (letterTF(st.st_mode) == 'l')) {
-		char linkpath[PATH_MAX];
-		if (readlink(path, linkpath, NAME_MAX) == -1) 
+		char linkpath[MAX_PATH];
+		if (readlink(path, linkpath, MAX_FILENAME) == -1) 
 			perror("Inaccessible linked path");
 		else
 			printf(" -> %s", linkpath);
@@ -332,7 +329,7 @@ void delete_dir(char* path) {
 		return; 
 	}
 	struct dirent *object; 
-	char object_path[PATH_MAX];
+	char object_path[MAX_PATH];
 	while ((object=readdir(dir))) {
 	
 		if (strcmp(object->d_name, ".") == 0 || strcmp(object->d_name, "..") == 0) {

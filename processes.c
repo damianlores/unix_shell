@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
-#include <limits.h>
 #include <time.h>
 #include <sys/wait.h>
 #include "processes.h"
@@ -133,7 +132,7 @@ void doShowEnvironment(char* env[], char* env_name) {
 
 int doSearchVariable(char* env[], char* var_name) {
 	int pos = 0;
-	char aux[CHAR_MAX];
+	char aux[MAX_PATH];
 	
 	strcpy(aux, var_name);
 	strcat(aux, "=");
@@ -190,7 +189,7 @@ void doChangeVarPutenv(char* var, char* value) {
 		perror("malloc failed");
 		return;
 	}*/
-	char aux[CHAR_MAX];
+	char aux[MAX_PATH];
 	strcpy(aux, var);
 	strcat(aux, "=");
 	strcat(aux, value);
@@ -221,8 +220,8 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 				strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y, %H:%M:%S", tm_info);
 				
 				int i = 0;
-				char command[CHAR_MAX];
-				snprintf(command, CHAR_MAX, "%s", file);
+				char command[MAX_INPUT];
+				snprintf(command, MAX_INPUT, "%s", file);
 				while (argv[i] != NULL) {
 					if (argv[i][0] == '&') {
 						i++;

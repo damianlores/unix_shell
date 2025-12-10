@@ -1,5 +1,6 @@
 #include <fcntl.h>
- 
+#include <string.h>
+#include <stdio.h>
 #include "shell.h"
 #include "types.h"
 #include "file_system.h"
@@ -68,7 +69,6 @@ void inherit_std_descriptors(tListF* OFList) {
 		if (fstat(fd, &st) == -1) { perror("Couldn't access standard descriptor"); return; };
 		
     	item.fd = fd;
-        item.dup_of = -1;
     	strcpy(item.name, std_descriptor_name[fd]);
     	copy_open_file_flags(item.mode, flags);
         
