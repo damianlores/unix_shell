@@ -346,35 +346,29 @@ void cmd_exit(char *args[], tShellState *ShellState) {
 
 
 void cmd_create(char *args[], tShellState *ShellState) {
-    //Checks the -f argument is passed
     if (args[1] == NULL) print_invalid_usage();
-    	
     if (strcmp(args[1], "--help") == 0) return help_create();
     	
-    if (strcmp(args[1], "-f") == 0) {
+    if (strcmp(args[1], "-f") == 0) {	// case arg -f present 
 		if (args[2] == NULL) return print_invalid_usage();
-	    
-		const char* filename = args[2];   //Tries to open the file in read/write mode
+		const char* filename = args[2];   // Tries to open the file in read/write mode (w+ means open in R/W, create if not present and truncate if existed already)
 	    FILE* fp = fopen(filename, "w+");
 	    if (!fp) 
 	        return perror("Imposible to create file");
-	    
 	    fclose(fp);
 	    return;
 	}
     
-    //Case -f not passed
+    // Case -f not passed -> create directory
     const char* dirname = args[1];
-    // Creates the directory with permissions read/write/execute
-    
-	if (mkdir(dirname, 0777) != 0)
+    // Creates the directory with permissions rwx, rw, r (user, group, other) 
+	if (mkdir(dirname, 0764) != 0)
         perror("Imposible to create directory");
 }
 
 
 void cmd_setdirparams(char *args[], tShellState *ShellState) {
     if (args[1] != NULL && (strcmp(args[1], "--help")) == 0) return help_setdirparams();
-    
 	size_t i;
 	for (i = 1 ; args[i] != NULL ; i++) {
 		if (strcmp(args[i], "long") == 0)
@@ -409,9 +403,7 @@ void cmd_getdirparams(char *args[], tShellState *ShellState) {
     strcpy(buffer, "Listing: ");
     strcat(buffer, ShellState->dirParams.long_format ? "Long " : "Short ");
     strcat(buffer, ShellState->dirParams.link ? "with links, " : "no links, ");
-    
-    
-    //Append information about the recursive mode
+    // Append information about the recursive mode
     switch(ShellState->dirParams.rec_mode) {
         case REC_OFF :
             strcat(buffer, "non-recursive ");
@@ -423,12 +415,10 @@ void cmd_getdirparams(char *args[], tShellState *ShellState) {
             strcat(buffer, "recursive (after) ");
             break;
     }
+    // Append information about the hidden files
+    strcat(buffer, ShellState->dirParams.show_hid ? "with hidden files" : "");
     
-    
-    //Append information about the hidden files
-    strcat(buffer, ShellState->dirParams.show_hid ? "with hidden files\n" : "\n");
-    
-    printf("%s", buffer);
+    puts(buffer);
 
 }	
 
