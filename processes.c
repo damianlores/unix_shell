@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 #include "processes.h"
 #include "types.h"
 #include "dynamic_list.h"
@@ -197,49 +198,65 @@ void doChangeVarPutenv(char* var, char* value) {
 }
 
 void doExec(char* file, char* argv[], tShellState* ShellState) {
-	int i = 0;
+	int i = 0, priority = 0;
 	pid_t PID;
+	bool background = false;
 	
-	if (argv[i] != NULL) {
-		while (argv[i+1] != NULL) i++;
-		
-		if (strcmp(argv[i], "&") == 0) {	// Execution in background
-			if ((PID = fork()) == 0) {		// If PID == 0 we are working in the child process
-		        if(execvp(file, argv) == -1) {
-		            perror("Cannot execute program");
-		            exit(EXIT_FAILURE);
-		        }
-        }
-		    else {							// PID not 0 is the value of the pid of the child process
-		    								// but it is returned in the parent process
-		    	time_t raw_time = time(NULL);
-				struct tm *tm_info;
-				char time_buffer[TIME_BUFFER_MAX];
-				tm_info = localtime(&raw_time); 
-				strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y, %H:%M:%S", tm_info);
-				
-				int i = 0;
-				char command[MAX_INPUT];
-				snprintf(command, MAX_INPUT, "%s", file);
-				while (argv[i] != NULL) {
-					if (argv[i][0] == '&') {
-						i++;
-						continue;
-					}
-					strcat(command, " ");
-					strcat(command, argv[i]);
-					i++;
-				}
-		    	tItemP process = DEFAULT_ITEM_P;
-		    	strcpy(process.command, command);					// set command
-		    	process.pid = PID;									// set pid
-		    	strcpy(process.launch_time, time_buffer);			// set time
-		        waitpid(PID, &process.signal, WNOHANG);				// set signal value
-		    	
-		    	insertItemP(&ShellState->ProcList, process);		// insert item
-		    	
-		        return;
-		    }
+	while (argv[i] != NULL) {
+		if (argv[i][0] == '@') {
+			int aux = i;
+			priority = (int)strtol(&argv[i][1], NULL, 10);
+			while (argv[aux] != NULL) {
+				argv[aux] = argv[aux+1]; 
+				aux++;
+			}
+		}
+		if (argv[i][0] == '&') {
+			int aux = i;
+			background = true;
+			while (argv[aux] != NULL) {
+				argv[aux] = argv[aux+1]; 
+				aux++;
+			}
+		}
+		i++;
+	}
+	printf("%d",priority);
+	if (background) {	// Execution in background
+		if ((PID = fork()) == 0) {		// If PID == 0 we are working in the child process
+			if (setpriority(PRIO_PROCESS, 0, priority) == -1) perror("Error setting priority");
+	        if(execvp(file, argv) == -1) {
+	            perror("Cannot execute program");
+	            exit(EXIT_FAILURE);
+	        }
+	    }
+		else {							// PID not 0 is the value of the pid of the child process
+	    								// but it is returned in the parent process
+	    	
+		    time_t raw_time = time(NULL);
+			struct tm *tm_info;
+			char time_buffer[TIME_BUFFER_MAX];
+			tm_info = localtime(&raw_time); 
+			strftime(time_buffer, sizeof(time_buffer), "%d/%m/%Y, %H:%M:%S", tm_info);
+			
+			char command[MAX_INPUT];
+			strcpy(command, argv[0]);
+			int i = 1;
+			while (argv[i] != NULL) {
+				if (argv[i][0] == '&' || argv[i][0] == '@' ) break;	// Stop adding command to buffer when encountered with @ or &
+				strcat(command, " ");
+				strcat(command, argv[i]);
+				i++;
+			}
+			tItemP process = DEFAULT_ITEM_P;
+			strcpy(process.command, command);					// set command
+			process.pid = PID;									// set pid
+			strcpy(process.launch_time, time_buffer);			// set time
+		    waitpid(PID, &process.signal, WNOHANG);				// set signal value
+			
+			insertItemP(&ShellState->ProcList, process);		// insert item
+			
+		    return;
 		}
 	}
 	// EXECUTION IN FOREGROUND

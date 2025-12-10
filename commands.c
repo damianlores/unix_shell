@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 #include "commands.h"
 #include "types.h"
 #include "dynamic_list.h"
@@ -1020,8 +1021,17 @@ void cmd_fork(char *args[], tShellState *ShellState) {
 
 void cmd_exec(char *args[], tShellState *ShellState) {
 	if (args[1] == NULL) return print_invalid_usage(); 
-	if (strcmp(args[1],"--help") == 0) return help_exec();	
+	if (strcmp(args[1],"--help") == 0) return help_exec();
 
+	int i = 1;
+	while (args[i] != NULL) {
+		if (args[i][0] == '@') { 
+			setpriority(PRIO_PROCESS, 0, (int)strtol(args[i], NULL, 10));
+			break;	// Stop checking args when '@' reached
+		}
+		i++;
+	}
+	
 	if (execvp(args[1], args+2) == -1)
 		return perror("Cannot execute program");
 }

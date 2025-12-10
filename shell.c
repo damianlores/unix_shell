@@ -51,7 +51,7 @@ void inputProcess(char* input, tShellState* ShellState) {
     }
 
     if (!cmd_dispatcher(args, ShellState))
-        doExec(args[0], args+1, ShellState);
+        doExec(args[0], args, ShellState);
 
 }
 
