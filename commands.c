@@ -458,10 +458,8 @@ void cmd_erase(char *args[], tShellState *ShellState) {
     for (int i = 1; args[i] != NULL; i++) {
         if ( isDir(args[i]) ) {
             // Removes only if empty
-            if (rmdir(args[i]) == -1)
-                perror(args[i]);
-            else
-                printf("Directory %s deleted\n", args[i]);
+            if (rmdir(args[i]) == -1) perror(args[i]);
+            else printf("Directory %s deleted\n", args[i]);
          	continue;   //Check the next argument
         }
         struct stat info;
@@ -475,8 +473,8 @@ void cmd_erase(char *args[], tShellState *ShellState) {
             	if (unlink(args[i]) == -1) perror(args[i]);
 	            else printf("File %s deleted\n", args[i]);
         	else {
-        		errno = ENOTEMPTY;
-        		perror(args[i]);
+        		errno = EPERM;
+        		perror("File is not empty");
 			}        
         }
     }
@@ -490,17 +488,15 @@ void cmd_delrec(char *args[], tShellState *ShellState) {
     for (int i = 1; args[i] != NULL; i++) {
         struct stat st;
 
-        if (lstat(args[i], &st) == -1) {
+        if (lstat(args[i], &st) == -1) { // If not able to acces file, continue
             perror(args[i]);
             continue;
         }
-		
-        if (isDir(args[i])) {
+        if (isDir(args[i])) { // If directory, call aux function
             delete_dir(args[i]);
         }
-    
         else {
-            if (unlink(args[i]) == -1) {
+            if (unlink(args[i]) == -1) { // else (if file), call unlink syscall and print error if couldn't unlink
                 perror(args[i]);
             }
         }
