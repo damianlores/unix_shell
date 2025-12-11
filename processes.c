@@ -116,7 +116,7 @@ int str_to_status(char* status) {
 }
 char* status_to_str(int status) {
 	int i;
-	for (i  =0 ; procstatus[i].name != NULL; i++)
+	for (i = 0 ; procstatus[i].name != NULL; i++)
 		if (status == procstatus[i].signal)
 			return procstatus[i].name;
 	return ("STATUKNOWN");
@@ -284,7 +284,7 @@ void updateProcessList(tListP* L) {
 			pos = nextP(*L, pos);
 			continue;
 		}
-		result = waitpid(process.pid, &process.signal, WNOHANG);
+		result = waitpid(process.pid, &process.signal, WNOHANG | WUNTRACED | WCONTINUED);
 		if (result == 0) {
             // process is ACTIVE and no status update report by waitpid -> next element
         } else if (result == -1) {
