@@ -202,14 +202,17 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 	pid_t PID;
 	bool background = false;
 	
-	while (argv[i] != NULL) {
+	while (argv[i] != NULL) {	// Parsing background and priority args
 		if (argv[i][0] == '@') {
 			int aux = i;
 			priority = (int)strtol(&argv[i][1], NULL, 10);
-			while (argv[aux] != NULL) {
+			while (argv[aux] != NULL) {		// As the ars in argv are shifted 1 position to the left
+											// we use continue so that is '&' is present gets evaluated too,
+											// and thus we also avoid segmentation fault if no further args than '@'
 				argv[aux] = argv[aux+1]; 
 				aux++;
 			}
+			continue;
 		}
 		if (argv[i][0] == '&') {
 			int aux = i;
@@ -218,10 +221,10 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 				argv[aux] = argv[aux+1]; 
 				aux++;
 			}
+			continue;
 		}
 		i++;
 	}
-	printf("%d",priority);
 	if (background) {	// Execution in background
 		if ((PID = fork()) == 0) {		// If PID == 0 we are working in the child process
 			if (setpriority(PRIO_PROCESS, 0, priority) == -1) perror("Error setting priority");
@@ -261,10 +264,11 @@ void doExec(char* file, char* argv[], tShellState* ShellState) {
 	}
 	// EXECUTION IN FOREGROUND
 	if ((PID = fork()) == 0) {
-	        if(execvp(file, argv) == -1) {
-	            perror("Cannot execute program");
-	            exit(EXIT_FAILURE);
-	        }
+		if (setpriority(PRIO_PROCESS, 0, priority) == -1) perror("Error setting priority");
+	    if(execvp(file, argv) == -1) {
+	        perror("Cannot execute program");
+            exit(EXIT_FAILURE);
+        }
     } else
         waitpid(PID, NULL, WUNTRACED);
 }
