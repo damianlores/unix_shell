@@ -1222,7 +1222,11 @@ void help_help() {
         "\t\tP0: authors, getpid, chdir, getcwd, date, hour, historic.\n"
         "\t\t    open, close, dup, listopen, infosys, exit, bye, quit, help.\n"
         "\t\tP1: create, setdirparams, getdirparams, dir, erase, delrec, lseek, writestr.\n"
-        "\t\tP2: malloc, mmap, shared, free, memfill, memdump, mem, readfile, writefile, read, write, recurse.\n"
+        "\t\tP2: malloc, mmap, shared, free, memfill, memdump, mem, readfile, writefile,\n"
+        "\t\t    read, write, recurse.\n"
+        "\t\tP3: uid, envvar, showenv, fork, jobs, deljobs.\n"
+        "\tTo execute files with the shell, we must follow the format from the 'exec' command.\n"
+        "\tRun 'help exec' for more information\n\n"
         "\tuse '--help' as OPTION in any command to show help.\n"
         );
 }
@@ -1407,16 +1411,30 @@ void help_showenv() {
 	    );
 }
 void help_fork() {
-
+	printf("\nfork - do fork and wait to chil process to terminate.\n"
+	    "\n'fork'\n"
+	    );
 }
 void help_exec() {
-
+	printf("\nexec - Executes a program without creating a new process.\n"
+	    "\n'exec exe [ARG1, ARG2,...] [@PRIO] [&]'\n"
+	    	"\texe\tExecutable file.\n"
+	    	"\t[ARGS]\tExecutable arguments.\n"
+	    	"\t[@PRIO]\tSet priority to PRIO.\n"
+	    	"\t[&]\tExecute in background and add process to list of background processes.\n"
+	    );
 }
 void help_jobs() {
-
+	printf("\njobs - Show list of background processes.\n"
+	    "\n'jobs'\n"
+	    );
 }
 void help_deljobs() {
-
+	printf("\ndeljobs - Deletes background processes of the list.\n"
+	    "\n'showenv [OPTION]'\n"
+	    	"\t-term\tDeletes those who terminated normally.\n"
+	    	"\t-sig\tDeletes those who terminated by a signal.\n"
+	    );
 }
 
 
