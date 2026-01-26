@@ -1,8 +1,8 @@
 
 # Lab Assigment P3 - Operative Systems
-#### This repo corresponds to the lab assigment number 3 of the Operative Systems course of the Computer Engineering degree at UDC.
-
-#### The provided code here might be used for any of the lab assigments, both as reference and guidance (make sure the provided reference shell of the current year matches this project behavior!).
+This repo corresponds to the lab assigment number 3 of the Operative Systems course of the Computer Engineering degree at UDC.
+####
+The provided code here might be used for any of the lab assigments, both as reference and guidance (make sure the provided reference shell of the current year matches this project behavior!).
 
 
 
