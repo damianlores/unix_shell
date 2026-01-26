@@ -1,7 +1,7 @@
 # Ignore compiled files
 *.o
 *.out
-
+# Ignore test and assigment files
 *.pdf
 /reference-shell
 /test
