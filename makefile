@@ -7,6 +7,9 @@ SRCS = p3.c commands.c dynamic_list.c shell.c file_system.c mem_management.c pro
 $(TARGET): $(SRCS)
 	gcc $(CFLAGS) $(SRCS) -o $(TARGET)
 
+%: $(SRCS)
+	gcc $(CFLAGS) $(SRCS) -o $@.out
+
 clean:
-	rm -f $(TARGET)
+	rm -f *.out
 
